@@ -1,0 +1,70 @@
+@import './base.css';
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--color-background);
+}
+
+/* 移动端优先设计 */
+@media (max-width: 768px) {
+  #app {
+    max-width: 100%;
+    padding: 0;
+  }
+}
+
+/* 桌面端适配 */
+@media (min-width: 769px) {
+  #app {
+    max-width: 414px; /* iPhone 6 Plus 宽度 */
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 可爱的链接样式 */
+a {
+  color: var(--primary-pink);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+a:hover {
+  background: rgba(255,182,193,0.1);
+  color: var(--accent-rose);
+}
+
+/* 移除旧的响应式布局，已在上面重新定义 */
+
+@media (min-width: 1024px) {
+  #app {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+}
+
+/* 可爱的滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-pink);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-rose);
+}
+

@@ -1,0 +1,128 @@
+/* Vant 4.x 萌系主题覆盖 */
+:root {
+  /* 主色调 - 萌系粉色 */
+  --van-primary-color: #FFB6C1;
+  --van-success-color: #98FB98;
+  --van-warning-color: #FFE4B5;
+  --van-danger-color: #FFB6BA;
+  --van-info-color: #87CEFA;
+  
+  /* 背景色系 */
+  --van-background: #FFF9F0;
+  --van-background-2: #FFF5F5;
+  --van-gray-1: #F8F8F8;
+  --van-gray-2: #F2F3F5;
+  --van-gray-3: #EBEDF0;
+  --van-gray-4: #DCDEE0;
+  --van-gray-5: #C8C9CC;
+  --van-gray-6: #969799;
+  --van-gray-7: #646566;
+  --van-gray-8: #323233;
+  
+  /* 文字颜色 */
+  --van-text-color: #333333;
+  --van-text-color-2: #666666;
+  --van-text-color-3: #999999;
+  
+  /* 边框和分割线 */
+  --van-border-color: #EBEDF0;
+  --van-active-color: #F2F3F5;
+  --van-active-opacity: 0.6;
+  
+  /* 圆角系统 */
+  --van-radius-sm: 8px;
+  --van-radius-md: 12px;
+  --van-radius-lg: 16px;
+  --van-radius-max: 999px;
+  
+  /* 阴影系统 */
+  --van-shadow-1: 0 2px 8px rgba(255, 182, 193, 0.1);
+  --van-shadow-2: 0 4px 12px rgba(255, 182, 193, 0.15);
+  --van-shadow-3: 0 8px 20px rgba(255, 182, 193, 0.2);
+  
+  /* 动画时长 */
+  --van-duration-base: 0.3s;
+  --van-duration-fast: 0.2s;
+  --van-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --van-ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+  --van-primary-color: #8B4B8C;
+  --van-background: #1A1A2E;
+  --van-background-2: #16213E;
+  --van-gray-1: #2A2A3E;
+  --van-gray-2: #3A3A4E;
+  --van-text-color: #E0E0E0;
+  --van-text-color-2: #B0B0B0;
+  --van-text-color-3: #808080;
+  --van-border-color: #404040;
+}
+
+/* 情人节主题 */
+[data-theme="valentine"] {
+  --van-primary-color: #FF1493;
+  --van-success-color: #FF69B4;
+  --van-background: #FFF0F5;
+  --van-background-2: #FFE4E1;
+}
+
+/* 萌系动画增强 */
+.van-button {
+  transition: all var(--van-duration-base) var(--van-ease-out);
+  transform-origin: center;
+}
+
+.van-button:active {
+  transform: scale(0.95);
+}
+
+.van-card {
+  transition: all var(--van-duration-base) var(--van-ease-out);
+}
+
+.van-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--van-shadow-3);
+}
+
+.van-tag {
+  transition: all var(--van-duration-fast) var(--van-ease-out);
+}
+
+.van-tag:hover {
+  transform: scale(1.05);
+}
+
+/* 萌系脉冲动画 */
+@keyframes cute-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.cute-pulse {
+  animation: cute-pulse 2s ease-in-out infinite;
+}
+
+/* 萌系摇摆动画 */
+@keyframes cute-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.cute-wiggle {
+  animation: cute-wiggle 1s ease-in-out infinite;
+}
+
+/* 萌系弹跳动画 */
+@keyframes cute-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.cute-bounce {
+  animation: cute-bounce 1s ease-out;
+}

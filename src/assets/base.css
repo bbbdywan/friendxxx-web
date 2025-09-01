@@ -1,0 +1,374 @@
+/* 可爱治愈系交友网站色彩系统 */
+:root {
+  /* 主色系 - 马卡龙色调 */
+  --primary-pink: #FFB6C1;
+  --secondary-blue: #87CEFA;
+  --secondary-mint: #98FB98;
+  --accent-rose: #FF69B4;
+  
+  /* 中性色系 */
+  --cream-white: #FFF9F0;
+  --light-gray: #F5F5F5;
+  --soft-gray: #E8E8E8;
+  --text-gray: #666666;
+  --text-dark: #333333;
+  
+  /* 阴影系统 */
+  --shadow-card: 0 4px 12px rgba(255,182,193,0.15);
+  --shadow-button: 0 2px 6px rgba(135,206,250,0.3);
+  --shadow-hover: 0 8px 16px rgba(0,0,0,0.08);
+  --shadow-elevated: 0 12px 24px rgba(255,182,193,0.25);
+  
+  /* 圆角规范 */
+  --radius-card: 16px;
+  --radius-button: 24px;
+  --radius-input: 12px;
+  --radius-avatar: 50%;
+  --radius-tag: 10px;
+  
+  /* 间距系统 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* 语义化颜色变量 */
+  --color-background: var(--cream-white);
+  --color-background-soft: var(--light-gray);
+  --color-surface: #FFFFFF;
+  --color-primary: var(--primary-pink);
+  --color-secondary: var(--secondary-blue);
+  --color-accent: var(--accent-rose);
+  --color-text: var(--text-dark);
+  --color-text-secondary: var(--text-gray);
+  --color-border: rgba(255,182,193,0.2);
+}
+
+/* 全局重置 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: 'HarmonyOS Sans Rounded', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 通用卡片样式 - 磨砂玻璃效果 */
+.card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-lg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-3px);
+}
+
+/* 卡片入场动画 */
+.card-enter {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardEnter 0.3s ease-out forwards;
+}
+
+@keyframes cardEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 交错动画延迟 */
+.card-enter:nth-child(1) { animation-delay: 0s; }
+.card-enter:nth-child(2) { animation-delay: 0.1s; }
+.card-enter:nth-child(3) { animation-delay: 0.2s; }
+.card-enter:nth-child(4) { animation-delay: 0.3s; }
+.card-enter:nth-child(5) { animation-delay: 0.4s; }
+
+/* 通用按钮样式 - 波浪纹效果 */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  box-shadow: var(--shadow-button);
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-pink), var(--accent-rose));
+  color: white;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--secondary-blue), var(--secondary-mint));
+  color: white;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-hover);
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+/* 图标按钮特殊样式 */
+.btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+/* 点赞特效 */
+.like-btn {
+  position: relative;
+  overflow: visible;
+}
+
+.like-btn.liked {
+  animation: likeAnimation 0.6s ease-out;
+}
+
+@keyframes likeAnimation {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.8); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* 粒子特效 */
+.particle {
+  position: absolute;
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--accent-rose);
+  animation: particleFloat 1s ease-out forwards;
+}
+
+@keyframes particleFloat {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx) * 2), calc(var(--dy) * 2)) scale(0.5);
+  }
+}
+
+/* 涟漪效果 */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 105, 180, 0.3);
+  transform: scale(0);
+  animation: rippleEffect 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes rippleEffect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* 输入框样式 */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-pink);
+  box-shadow: 0 0 0 3px rgba(255,182,193,0.1);
+}
+
+/* 头像样式 - 柔光滤镜 */
+.avatar {
+  position: relative;
+  border-radius: var(--radius-avatar);
+  object-fit: cover;
+  border: 3px solid var(--color-surface);
+  box-shadow: var(--shadow-card);
+  filter: brightness(105%);
+  transition: all 0.3s ease;
+}
+
+/* 在线状态指示器 - 粉色呼吸灯 */
+.avatar-online::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-rose);
+  border: 2px solid white;
+  border-radius: 50%;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* 标签样式 - 糖果色半透明 */
+.tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-tag);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.tag-pink {
+  background: rgba(255, 182, 193, 0.2);
+  color: #E91E63;
+}
+
+.tag-blue {
+  background: rgba(135, 206, 250, 0.2);
+  color: #2196F3;
+}
+
+.tag-mint {
+  background: rgba(152, 251, 152, 0.2);
+  color: #4CAF50;
+}
+
+/* 云朵骨架屏 - 渐变流动动画 */
+.skeleton-cloud {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 20px;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 页面切换动画 */
+.page-enter-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.page-leave-active {
+  transition: all 0.3s ease-in;
+}
+
+.page-enter-from {
+  transform: translateX(100%);
+  opacity: 0.8;
+}
+
+.page-leave-to {
+  transform: translateX(-30%);
+  opacity: 0;
+}
+
+/* 空状态插画 */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-secondary);
+}
+
+.empty-illustration {
+  font-size: 80px;
+  margin-bottom: var(--spacing-lg);
+  animation: emptyFloat 3s ease-in-out infinite;
+}
+
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+/* 下拉刷新动画 */
+.pull-refresh {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+  color: var(--primary-pink);
+}
+
+.refresh-icon {
+  font-size: 24px;
+  animation: refreshSpin 1s linear infinite;
+}
+
+@keyframes refreshSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+
