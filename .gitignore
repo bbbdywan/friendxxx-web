@@ -28,3 +28,19 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Claude AI files
+.claude/
+
+# Build artifacts
+dist.tar.gz
+
+# PowerShell scripts (if sensitive)
+*.ps1
+
+# Test files
+src/yytest/
+
+# HTML test files
+kmTravel.html
+public/api-path-finder.html

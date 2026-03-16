@@ -24,7 +24,7 @@ const hiddenTabBarRoutes = ['/login', '/search']
 // 根据路由元信息决定是否显示底部导航栏
 const showTabBar = computed(() => {
   // AI聊天页面与搜索页不显示底部导航栏（纯界面调整，不改动业务逻辑）
-  if (route.path === '/ai-chat' || route.path === '/ai-assistant' || route.path === '/ai-chat-example' || route.path === '/search') {
+  if (route.path === '/ai-chat' || route.path === '/search') {
     return false
   }
   return route.meta?.showTabBar !== false

@@ -25,7 +25,7 @@
         <van-field
           v-model="postContent"
           type="textarea"
-          placeholder="分享你的甜蜜时刻... 🌸"
+          placeholder="分享你的幸福时刻... 🌸"
           rows="4"
           autosize
           maxlength="500"
@@ -284,7 +284,7 @@ const nearbyLocations = ref([
 // 可选心情
 const availableMoods = [
   '开心', '兴奋', '甜蜜', '温暖', '感动', '惊喜',
-  '平静', '思考', '期待', '满足', '幸福', '浪漫'
+  '平静', '思考', '期待', '满足', '幸福', '破防'
 ]
 
 // 心情表情映射
@@ -301,7 +301,7 @@ const getMoodEmoji = (mood) => {
     '期待': '😍',
     '满足': '😄',
     '幸福': '😘',
-    '浪漫': '💕'
+    '破防': '👽'
   }
   return emojiMap[mood] || '😊'
 }

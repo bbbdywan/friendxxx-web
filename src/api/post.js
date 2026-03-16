@@ -44,3 +44,53 @@ export function deleteMoment(id) {
   return request.delete(`/stausup/delete?id=${id}`)
 }
 
+/**
+ * 修改当前用户动态
+ * @param {object} params UpSociaPost
+ * @param {number} params.id 
+ * @param {string} params.content 
+ * @returns
+ */
+export function updatesocia(params) {
+  return request.post(`/stausup/upcurrentstatus`, params)
+}
+
+/**
+ * 点赞/取消点赞
+ * @param {number} postid
+ * @param {number} userId
+ * @param {number} likesId - 1点赞 0取消
+ */
+export function likesPost(postid, userId, likesId) {
+  return request.post('/stausup/likes', { postid, userId, likesId })
+}
+
+/**
+ * 发表评论
+ * @param {number} postId
+ * @param {number} userId
+ * @param {string} nickname
+ * @param {string} content
+ * @param {string} avatarUrl
+ */
+export function commentPost(postId, userId, nickname, content, avatarUrl) {
+  return request.post('/stausup/comment', { postId, userId, nickname, content, avatarUrl })
+}
+
+/**
+ * 获取评论列表
+ * @param {number} postId
+ */
+export function getComments(postId) {
+  return request.get(`/stausup/comments/${postId}`)
+}
+
+/**
+ * 获取单个动态详情
+ * @param {number} id - 动态ID
+ * @returns {Promise} 动态详情响应
+ */
+export function getonlyup(id) {
+  return request.get(`/stausup/getonlyup?id=${id}`)
+}
+

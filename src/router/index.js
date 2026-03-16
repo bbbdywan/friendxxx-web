@@ -8,8 +8,6 @@ import ChatDetail from '../views/ChatDetail.vue'
 import UserProfile from '../views/UserProfile.vue'
 import LoginPage from '../views/LoginPage.vue'
 import AiChatPage from '../views/AiChatPage.vue'
-import AiAssistantPage from '../views/AiAssistantPage.vue'
-import AiChatExamplePage from '../views/AiChatExamplePage.vue'
 import ApiTestPage from '../views/ApiTestPage.vue'
 import DebugPage from '../views/DebugPage.vue'
 import TestPage from '../views/TestPage.vue'
@@ -21,6 +19,7 @@ import RecommendDebug from '../views/RecommendDebug.vue'
 import ChatTest from '../views/ChatTest.vue'
 import ChatDebug from '../views/ChatDebug.vue'
 import MessageSendTest from '../views/MessageSendTest.vue'
+import AdminPage from '../views/AdminPage.vue'
 
 const routes = [
   {
@@ -216,7 +215,12 @@ const routes = [
   {
     path: '/post',
     name: 'PostPage',
-    component: () => import('../views/PostPage.vue')
+    component: () => import('../views/PostPage.vue'),
+    meta: {
+      title: '发布动态',
+      showTabBar: false,
+      requiresAuth: true
+    }
   },
   {
     path: '/tags-edit',
@@ -235,26 +239,6 @@ const routes = [
     }
   },
   {
-    path: '/ai-assistant',
-    name: 'AiAssistant',
-    component: AiAssistantPage,
-    meta: {
-      title: 'AI智能助手',
-      showTabBar: false,  // 隐藏底部导航栏
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/ai-chat-example',
-    name: 'AiChatExample',
-    component: AiChatExamplePage,
-    meta: {
-      title: 'AI聊天组件示例',
-      showTabBar: false,  // 隐藏底部导航栏
-      requiresAuth: false
-    }
-  },
-  {
     path: '/my-moments',
     name: 'MyMoments',
     component: () => import('../views/MyMomentsPage.vue'),
@@ -266,6 +250,16 @@ const routes = [
     component: () => import('../views/SearchPage.vue'),
     meta: {
       title: '搜索'
+    }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: AdminPage,
+    meta: {
+      title: '管理中心',
+      showTabBar: false,
+      requiresAuth: true
     }
   }
 ]

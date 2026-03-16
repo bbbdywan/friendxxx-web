@@ -1,17 +1,14 @@
-<template>
+﻿<template>
   <div class="home-page">
     <!-- 顶部导航 -->
     <div class="top-nav">
       <div class="nav-left">
-        <div class="logo">💕</div>
+        <div class="logo" ref="lottieLogoRef" style="width:60px;height:60px;"></div>
         <h1 class="app-name">心事小屋</h1>
       </div>
       <div class="nav-right">
         <van-icon name="plus" size="20" @click="$router.push('/post')" class="post-btn" />
-        <van-icon name="chat-o" size="20" @click="$router.push('/ai-assistant')" class="ai-assistant-btn" title="AI智能助手" />
-        <van-icon name="apps-o" size="20" @click="$router.push('/ai-chat-example')" class="example-btn" title="AI组件示例" />
-        <van-icon name="search" size="20" @click="$router.push('/search')" />
-        <van-icon name="bell-o" size="20" class="ml-4" />
+        <van-icon name="search" size="20" @click="$router.push('/search')" class="search-btn" />
       </div>
     </div>
 
@@ -38,7 +35,7 @@
         <span>表情雨</span>
       </div>
       <div class="feature-item" @click="handleAIAssistant">
-        <div class="feature-icon">🤖</div>
+        <div class="feature-icon" ref="lottieAiRef" style="width:65px;height:65px;"></div>
         <span>AI助手</span>
       </div>
       <div class="feature-item" @click="handleChat">
@@ -88,7 +85,9 @@
         <h2>最新动态</h2>
         <div class="header-actions">
           <span @click="refreshMoments" class="refresh-btn">🔄</span>
-          <span @click="$router.push('/post')" class="post-btn">✏️</span>
+          <span @click="$router.push('/post')" class="post-btn">
+            <van-icon name="edit" size="16" />
+          </span>
           <span @click="$router.push('/discover?tab=moments')">更多 ></span>
         </div>
       </div>
@@ -120,6 +119,7 @@
               <div style="font-size: 14px !important; font-weight: 600 !important; color: #333 !important; margin: 0 !important; padding: 0 !important; line-height: 1.2 !important;">{{ moment.user.name }}</div>
               <div style="font-size: 11px !important; color: #999 !important; margin: 2px 0 0 0 !important; padding: 0 !important; line-height: 1.1 !important;">{{ formatTime(moment.createdAt) }}</div>
             </div>
+
           </div>
           
           <!-- 动态内容 -->
@@ -176,28 +176,23 @@
           </div>
           
           <!-- 互动按钮 -->
-          <!-- 
           <div class="moment-actions">
-            <div 
+            <button
               class="action-btn like-btn"
               :class="{ liked: moment.liked }"
-              @click="likeMoment(moment)"
+              @click.stop="toggleLike(moment)"
             >
-              <van-icon :name="moment.liked ? 'like' : 'like-o'" />
-              <span>{{ moment.likes }}</span>
-            </div>
-            
-            <div class="action-btn comment-btn">
-              <van-icon name="chat-o" />
-              <span>{{ moment.comments }}</span>
-            </div>
-            
-            <div class="action-btn share-btn">
-              <van-icon name="share-o" />
-              <span>分享</span>
-            </div>
+              <van-icon :name="moment.liked ? 'good-job' : 'good-job-o'" size="18" />
+              <span>{{ moment.likes || 0 }}</span>
+            </button>
+            <button
+              class="action-btn comment-btn"
+              @click.stop="openComment(moment)"
+            >
+              <van-icon name="chat-o" size="18" />
+              <span>{{ moment.commentCount || 0 }}</span>
+            </button>
           </div>
-          -->
         </div>
       </div>
       
@@ -226,7 +221,7 @@
     />
 
     <!-- 搜索弹窗 -->
-    <van-popup v-model:show="showSearch" position="top" :style="{ height: '100%' }">
+    <van-popup v-model:show="showSearch" position="bottom" :style="{ height: '90%', borderRadius: '16px 16px 0 0' }" @open="fetchNews">
       <div class="search-page">
         <div class="search-header">
           <van-search 
@@ -239,13 +234,71 @@
         </div>
         <div class="search-content">
           <div class="search-hot">
-            <h3>热门搜索</h3>
-            <div class="hot-tags">
-              <span v-for="tag in hotTags" :key="tag" class="hot-tag" @click="searchKeyword = tag">
-                {{ tag }}
-              </span>
+            <h3>热门资讯</h3>
+            <div v-if="newsLoading" class="news-loading">
+              <van-loading type="spinner" size="20" />
+            </div>
+            <div v-else class="news-list">
+              <div
+                v-for="(item, index) in newsList"
+                :key="index"
+                class="news-item"
+                @click="openNewsScheme(item.scheme)"
+              >
+                <span class="news-index" :class="index < 3 ? 'hot' : ''">{{ index + 1 }}</span>
+                <img v-if="item.icon" :src="item.icon" class="news-icon" />
+                <span class="news-title">{{ item.title }}</span>
+                <span v-if="item.desc_extr" class="news-heat" :class="typeof item.desc_extr === 'string' ? 'rising' : ''">
+                  {{ typeof item.desc_extr === 'string' ? item.desc_extr : formatHeat(item.desc_extr) }}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+    </van-popup>
+
+    <!-- 评论弹窗 -->
+    <van-popup v-model:show="showComment" position="bottom" :style="{ height: '70%', borderRadius: '16px 16px 0 0' }">
+      <div class="comment-popup">
+        <div class="comment-header">
+          <span>评论 {{ currentCommentMoment?.commentCount || 0 }}</span>
+          <van-icon name="cross" @click="showComment = false" />
+        </div>
+        <!-- 评论列表 -->
+        <div class="comments-list">
+          <div v-if="commentsLoading" class="comments-loading">
+            <van-loading type="spinner" size="20" />
+          </div>
+          <div v-else-if="commentsList.length === 0" class="comments-empty">暂无评论，快来抢沙发</div>
+          <div v-else>
+            <div v-for="(c, i) in commentsList" :key="i" class="comment-item">
+              <van-image
+                :src="c.avatarUrl || 'https://picsum.photos/200/200?random=' + c.userId"
+                round width="32" height="32" fit="cover"
+              />
+              <div class="comment-body">
+                <div class="comment-nickname">{{ c.nickname || '用户' }}</div>
+                <div class="comment-content">{{ c.content }}</div>
+                <div class="comment-time">{{ c.createTime ? formatTime(new Date(c.createTime)) : '' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 输入区 -->
+        <div class="comment-input-area">
+          <van-field
+            v-model="commentText"
+            type="textarea"
+            placeholder="说点什么..."
+            rows="2"
+            autosize
+            maxlength="200"
+            show-word-limit
+          />
+        </div>
+        <div class="comment-footer">
+          <van-button type="primary" round size="small" :loading="commentLoading" @click="submitComment">发送</van-button>
         </div>
       </div>
     </van-popup>
@@ -272,12 +325,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import lottie from 'lottie-web'
 import { useUserStore } from '../stores/user.js'
 import { getUserTagsList, getUserById } from '../api/user.js'
-import { getstup } from '../api/post.js'
+import { getstup, likesPost, commentPost, getComments } from '../api/post.js'
 import { parseTags } from '../api/types.js'
 import { showToast, showImagePreview } from 'vant'
 import EmojiRain from '../components/EmojiRain.vue'
+import { getnews } from '../api/search.js'
 
 const userStore = useUserStore()
 const $router = useRouter()
@@ -286,8 +341,113 @@ const showSearch = ref(false)
 const showGiftModal = ref(false)
 const searchKeyword = ref('')
 const emojiRain = ref(null)
+const lottieAiRef = ref(null)
+const lottieLogoRef = ref(null)
 const loading = ref(false)
 const momentsLoading = ref(false)
+const newsList = ref([])
+const newsLoading = ref(false)
+const showComment = ref(false)
+const commentText = ref('')
+const commentLoading = ref(false)
+const currentCommentMoment = ref(null)
+const commentsList = ref([])
+const commentsLoading = ref(false)
+
+const toggleLike = async (moment) => {
+  const userId = userStore.userInfo?.id
+  if (!userId) return showToast('请先登录')
+  const newLiked = !moment.liked
+  moment.liked = newLiked
+  moment.likes = Math.max(0, (parseInt(moment.likes) || 0) + (newLiked ? 1 : -1))
+  try {
+    const res = await likesPost(moment.id, userId, newLiked ? 1 : 0)
+    if ((res.code === 200 || res.code === 0) && res.data?.likeCount !== undefined) {
+      moment.likes = res.data.likeCount
+    }
+  } catch (e) {
+    moment.liked = !newLiked
+    moment.likes = Math.max(0, (parseInt(moment.likes) || 0) + (newLiked ? -1 : 1))
+    showToast('操作失败')
+  }
+}
+
+const openComment = async (moment) => {
+  currentCommentMoment.value = moment
+  commentText.value = ''
+  commentsList.value = []
+  showComment.value = true
+  try {
+    commentsLoading.value = true
+    const res = await getComments(moment.id)
+    if (res.code === 200 || res.code === 0) {
+      commentsList.value = Array.isArray(res.data) ? res.data : []
+    }
+  } catch (e) {
+    console.error('获取评论失败:', e)
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+const submitComment = async () => {
+  if (!commentText.value.trim()) return showToast('请输入评论内容')
+  const userId = userStore.userInfo?.id
+  if (!userId) return showToast('请先登录')
+  try {
+    commentLoading.value = true
+    const nickname = userStore.userInfo?.username || userStore.userInfo?.nickname || '用户'
+    const avatarUrl = userStore.userInfo?.avatarUrl || ''
+    await commentPost(
+      currentCommentMoment.value.id,
+      userId,
+      nickname,
+      commentText.value.trim(),
+      avatarUrl
+    )
+    commentsList.value.push({
+      postId: currentCommentMoment.value.id,
+      userId,
+      nickname,
+      content: commentText.value.trim(),
+      createTime: new Date().toISOString(),
+      avatarUrl
+    })
+    currentCommentMoment.value.commentCount = (currentCommentMoment.value.commentCount || 0) + 1
+    commentText.value = ''
+    showToast('评论成功')
+  } catch (e) {
+    showToast('评论失败')
+  } finally {
+    commentLoading.value = false
+  }
+}
+
+const fetchNews = async () => {
+  try {
+    newsLoading.value = true
+    const res = await getnews()
+    if (res.code === 200 || res.code === 0) {
+      const parsed = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+      const list = parsed?.data || parsed
+      newsList.value = Array.isArray(list) ? list : []
+    }
+  } catch (e) {
+    console.error('获取热门资讯失败:', e)
+  } finally {
+    newsLoading.value = false
+  }
+}
+
+const openNewsScheme = (scheme) => {
+  if (scheme) window.open(scheme, '_blank')
+}
+
+const formatHeat = (num) => {
+  if (!num) return ''
+  if (num >= 10000) return (num / 10000).toFixed(1) + '万'
+  return num.toString()
+}
 
 // 轮播图数据 - 使用本地图片提高加载速度
 const banners = ref([
@@ -355,6 +515,7 @@ const sendGift = (gift) => {
   showGiftModal.value = false
   // 这里可以添加发送礼物的逻辑
 }
+
 
 const formatTime = (time) => {
   const now = new Date()
@@ -483,8 +644,8 @@ const fetchMoments = async () => {
           content: moment.content || '',
           images: Array.isArray(moment.imageList) ? moment.imageList : [],
           likes: moment.likeCount || 0,
-          comments: 0, // API中没有评论数，暂时设为0
-          liked: false, // 默认未点赞
+          commentCount: moment.commentCount || 0,
+          liked: false,
           createdAt: new Date(moment.createTime),
           mood: Array.isArray(moment.mood) ? moment.mood : []
         }
@@ -550,6 +711,24 @@ onMounted(async () => {
     fetchRecommendUsers(),
     fetchMoments()
   ])
+  if (lottieAiRef.value) {
+    lottie.loadAnimation({
+      container: lottieAiRef.value,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: '/0MAdI0iKs8.json'
+    })
+  }
+  if (lottieLogoRef.value) {
+    lottie.loadAnimation({
+      container: lottieLogoRef.value,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: '/Loader cat.json'
+    })
+  }
 })
 
 // 智能匹配
@@ -621,9 +800,6 @@ const handleChat = () => {
   gap: var(--spacing-md);
 }
 
-.ml-4 {
-  margin-left: 16px;
-}
 
 .banner-swipe {
   height: 180px;
@@ -1108,15 +1284,33 @@ const handleChat = () => {
   font-size: 12px;
 }
 
-.refresh-btn, .post-btn {
+.refresh-btn {
   cursor: pointer;
   padding: var(--spacing-xs);
   border-radius: 50%;
   transition: all 0.3s ease;
 }
 
-.refresh-btn:hover, .post-btn:hover {
+.refresh-btn:hover {
   background: var(--background-light);
+  transform: scale(1.1);
+}
+
+.section .post-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1989fa;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.section .post-btn:hover {
+  background: #1677d9;
   transform: scale(1.1);
 }
 
@@ -1149,21 +1343,167 @@ const handleChat = () => {
   margin-bottom: var(--spacing-md);
 }
 
-.hot-tags {
+.news-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  flex-direction: column;
 }
 
-.hot-tag {
-  padding: 6px 12px;
-  background: rgba(255, 182, 193, 0.1);
-  color: var(--primary-pink);
-  border-radius: 20px;
-  font-size: 12px;
+.news-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
 }
 
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-index {
+  width: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #999;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.news-index.hot {
+  color: var(--primary-pink);
+}
+
+.news-title {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.news-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.news-heat {
+  font-size: 11px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.news-heat.rising {
+  color: #ff6b35;
+}
+
+.comment-popup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.comments-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.comments-loading, .comments-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  color: #999;
+  font-size: 13px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-body {
+  flex: 1;
+}
+
+.comment-nickname {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.comment-content {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.comment-time {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 4px;
+}
+
+.comment-input-area {
+  border-top: 1px solid #f5f5f5;
+  padding-top: 8px;
+}
+
+.comment-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.moment-actions {
+  display: flex;
+  gap: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
+  margin-top: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.action-btn:active {
+  background: #f5f5f5;
+}
+
+.like-btn.liked {
+  color: var(--primary-pink);
+}
 .gift-modal {
   padding: var(--spacing-lg);
 }
@@ -1236,84 +1576,62 @@ const handleChat = () => {
   }
 }
 
-.post-btn {
-  margin-right: 12px;
+.nav-right .post-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1989fa;
+  color: white;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-right .post-btn:hover {
+  transform: scale(1.1);
+  background: #1677d9;
+}
+
+.search-btn {
   padding: 6px;
   border-radius: 50%;
-  background: var(--van-primary-color);
-  color: white;
+  color: var(--color-text);
   transition: all 0.3s ease;
 }
 
-.post-btn:hover {
+.search-btn:hover {
   transform: scale(1.1);
-  background: var(--van-primary-color-dark);
+  color: var(--primary-pink);
 }
 
-.ai-assistant-btn {
-  margin-right: 12px;
-  padding: 6px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  transition: all 0.3s ease;
-  position: relative;
+.moment-like-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 132px;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: 26px;
+  border: 2px solid #dfc28a;
+  background: #fffaf0;
+  color: #c79947;
+  font-size: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.ai-assistant-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.moment-like-button.liked {
+  background: #fff1dc;
+  border-color: #cf9d4a;
+  color: #b98226;
 }
 
-.ai-assistant-btn::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 50%;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.ai-assistant-btn:hover::after {
-  opacity: 0.3;
-}
-
-.example-btn {
-  margin-right: 12px;
-  padding: 6px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff6b9d, #c44569);
-  color: white;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.example-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
-}
-
-.example-btn::after {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(135deg, #ff6b9d, #c44569);
-  border-radius: 50%;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.example-btn:hover::after {
-  opacity: 0.3;
+.moment-like-button:active {
+  transform: scale(0.97);
 }
 </style>
 

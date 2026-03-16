@@ -114,6 +114,17 @@
         />
       </van-cell-group>
       
+      <!-- 管理员专属入口 -->
+      <van-cell-group inset>
+        <van-cell 
+          title="管理员专属界面" 
+          icon="manager-o" 
+          is-link 
+          @click="goToAdmin"
+          class="admin-cell"
+        />
+      </van-cell-group>
+
       <van-cell-group inset>
         <van-cell 
           title="退出登录" 
@@ -365,6 +376,20 @@ const userTags = computed(() => {
   } catch {
     return []
   }
+})
+
+// 判断是否为管理员（可以根据 userAccount, id 或其他字段判断）
+const isAdmin = computed(() => {
+  // 方式1: 根据用户账号判断
+  if (userInfo.value?.userAccount === 'admin') return true
+  
+  // 方式2: 根据用户ID判断（示例：ID为1的是管理员）
+  if (userInfo.value?.id === '1' || userInfo.value?.id === 1) return true
+  
+  // 方式3: 根据用户的 role 字段判断（如果后端提供）
+  if (userInfo.value?.role === 'admin') return true
+  
+  return false
 })
 
 const genderText = computed(() => {
@@ -664,6 +689,11 @@ const changeAvatar = async () => {
   } catch (error) {
     console.error('选择文件失败:', error)
   }
+}
+
+// 跳转到管理员页面
+const goToAdmin = () => {
+  router.push('/admin')
 }
 
 // 退出登录
@@ -1170,6 +1200,15 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
+}
+
+.admin-cell .van-cell__title {
+  color: #1989fa !important;
+  font-weight: 500;
+}
+
+.admin-cell .van-icon {
+  color: #1989fa !important;
 }
 
 .logout-cell .van-cell__title {

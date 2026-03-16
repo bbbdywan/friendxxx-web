@@ -222,5 +222,39 @@ export function hrlogin(params) {
   return request.post('/user/hrlogin', params)
 }
 
+/**
+ * 获取所有用户（管理员分页查询）
+ * @param {object} params - 分页参数（PageDTO）
+ * @param {number} params.pageNum - 当前页码
+ * @param {number} params.pageSize - 每页大小
+ * @param {string} params.username - 用户昵称搜索（可选）
+ * @param {string} params.createTimeBegin - 创建时间开始（可选，格式：YYYY-MM-DD HH:mm:ss，后端接收LocalDateTime类型）
+ * @param {string} params.createTimeEnd - 创建时间结束（可选，格式：YYYY-MM-DD HH:mm:ss，后端接收LocalDateTime类型）
+ * @returns {Promise} 用户列表响应 { code: 200, message: "操作成功", data: PageInfo<User> }
+ * 
+ * @example
+ * selectAlluser({
+ *   pageNum: 1,
+ *   pageSize: 10,
+ *   username: "白白白",
+ *   createTimeBegin: "2024-01-01 00:00:00",
+ *   createTimeEnd: "2024-12-31 23:59:59"
+ * })
+ */
+export function selectAlluser(params) {
+  // 后端接口：POST /user/getalluser
+  // 参数通过 request body 传递（PageDTO）
+  return request.post('/user/getalluser', params)
+}
 
+/**
+ * 删除用户（管理员操作）
+ * @param {number} adminId - 管理员ID
+ * @param {number} userId - 被删除的用户ID
+ * @returns {Promise} 删除响应
+ */
+export function deleteuser(adminId, userId) {
+  // 后端接口：DELETE /user/{userId}?adminId={adminId}
+  return request.delete(`/user/${userId}`, { params: { adminId } })
+}
 

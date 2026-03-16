@@ -1,21 +1,11 @@
 <template>
   <div class="post-page">
-    <!-- 隐藏的文件选择器 - 确保在模板的正确位置 -->
-    <input
-      ref="fileInput"
-      type="file"
-      accept="image/*"
-      multiple
-      style="display: none"
-      @change="handleFileSelect"
-    />
-    
-    <!-- 顶部导航 -->
+    <!-- 顶部导航栏 -->
     <div class="top-nav">
       <van-nav-bar
-        title="发布动态"
+        :title="isEditMode ? '编辑动态' : '发布动态'"
         left-arrow
-        @click-left="$router.back()"
+        @click-left="$router.go(-1)"
         class="nav-bar"
       >
         <template #right>
@@ -25,17 +15,22 @@
             round
             :loading="isPublishing"
             :disabled="!canPublish"
-            @click="handlePublish"
             class="nav-publish-btn"
+            @click="handlePublish"
           >
-            发布
+            {{ isEditMode ? '保存' : '发布' }}
           </van-button>
         </template>
       </van-nav-bar>
     </div>
 
-    <!-- 主要内容区域 -->
-    <div class="content-wrapper">
+    <!-- 加载动态详情时的loading -->
+    <van-loading v-if="isLoadingMoment" type="spinner" color="#FFB6C1" vertical>
+      加载动态详情中...
+    </van-loading>
+
+    <!-- 原有内容 -->
+    <div v-else class="content-wrapper">
       <!-- 用户信息卡片 -->
       <div class="user-card card-hover">
         <div class="user-info">
@@ -336,18 +331,29 @@
         </div>
       </div>
     </van-popup>
+
+    <!-- 隐藏的文件输入元素 -->
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      multiple
+      style="display: none"
+      @change="handleFileSelect"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { showImagePreview, showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import { uploadImage } from '../api/upload'
-import { publishPost } from '../api/post'
+import { publishPost, updatesocia, getonlyup } from '../api/post'
 import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const fileInput = ref(null)
 
@@ -454,15 +460,17 @@ const nearbyLocations = ref([
 // 可选心情
 const availableMoods = [
   '开心', '兴奋', '甜蜜', '温暖', '感动', '惊喜',
-  '平静', '思考', '期待', '满足', '幸福', '浪漫'
+  '平静', '思考', '期待', '满足', '幸福', '破防'
 ]
 
 // 心情表情映射
+//小表情获取网址
+//https://unicode.org/emoji/charts/full-emoji-list.html
 const getMoodEmoji = (mood) => {
   const emojiMap = {
     '开心': '😊', '兴奋': '🤩', '甜蜜': '🥰', '温暖': '🤗',
     '感动': '🥺', '惊喜': '😲', '平静': '😌', '思考': '🤔',
-    '期待': '😍', '满足': '😄', '幸福': '😘', '浪漫': '💕'
+    '期待': '😍', '满足': '😄', '幸福': '😘', '破防': '👽'
   }
   return emojiMap[mood] || '😊'
 }
@@ -700,69 +708,77 @@ const removeMood = (mood) => {
   }
 }
 
-// 发布动态 - 使用正确的用户信息
+// 发布动态 - 支持编辑模式
 const handlePublish = async () => {
   if (!canPublish.value) return
   
   isPublishing.value = true
   
   try {
-    // 获取当前用户信息
-    const currentUser = userStore.userInfo || getCurrentUserInfo()
-    
-    if (!currentUser) {
-      showToast('请先登录')
-      router.push('/login')
-      return
-    }
-    
-    // 构建请求数据
-    const postData = {
-      content: postContent.value.trim(),
-      createTime: new Date().toISOString(),
-      id: 0,
-      imageList: mediaList.value
-        .filter(media => media.type === 'image')
-        .map(media => media.url),
-      isDeleted: 0,
-      likeCount: 0,
-      mood: selectedMoods.value.map(moodLabel => ({
-        emoji: getMoodEmoji(moodLabel),
-        label: moodLabel
-      })),
-      nickname: currentUser.userName || currentUser.nickname || currentUser.name || '用户',
-      updateTime: '',
-      userId: currentUser.id || currentUser.userId || 0,
-      avatarUrl: currentUser.avatar || currentUser.avatarUrl || ''
-    }
-    
-    // 只有选择了具体时间才添加TTL字段
-    if (selectedTtl.value !== null && selectedTtl.value > 0) {
-      postData.deleteTtl = selectedTtl.value.toString()
-      postData.supTtl = Date.now().toString()
-    }
-    // 永久展示或未选择时，不添加这两个字段
-    
-    console.log('发布动态数据:', postData)
-    
-    // 调用API发布动态
-    const response = await publishPost(postData)
-    
-    if (response.code === 200 || response.code === 0) {
-      showToast('动态发布成功！')
+    if (isEditMode.value) {
+      // 编辑模式 - 调用更新接口
+      const updateData = {
+        id: editingMomentId.value,
+        content: postContent.value.trim()
+      }
       
-      // 重置表单
-      resetForm()
+      console.log('更新动态数据:', updateData)
+      const response = await updatesocia(updateData)
       
-      // 返回首页
-      router.push('/')
+      if (response.code === 200 || response.code === 0) {
+        showToast('动态更新成功！')
+        router.push('/discover?tab=moments')
+      } else {
+        throw new Error(response.message || '更新失败')
+      }
     } else {
-      throw new Error(response.message || '发布失败')
+      // 发布模式 - 原有逻辑
+      const currentUser = userStore.userInfo || getCurrentUserInfo()
+      
+      if (!currentUser) {
+        showToast('请先登录')
+        router.push('/login')
+        return
+      }
+      
+      const postData = {
+        content: postContent.value.trim(),
+        createTime: new Date().toISOString(),
+        id: 0,
+        imageList: mediaList.value
+          .filter(media => media.type === 'image')
+          .map(media => media.url),
+        isDeleted: 0,
+        likeCount: 0,
+        mood: selectedMoods.value.map(moodLabel => ({
+          emoji: getMoodEmoji(moodLabel),
+          label: moodLabel
+        })),
+        nickname: currentUser.userName || currentUser.nickname || currentUser.name || '用户',
+        updateTime: '',
+        userId: currentUser.id || currentUser.userId || 0,
+        avatarUrl: currentUser.avatar || currentUser.avatarUrl || ''
+      }
+      
+      if (selectedTtl.value !== null && selectedTtl.value > 0) {
+        postData.deleteTtl = selectedTtl.value.toString()
+        postData.supTtl = Date.now().toString()
+      }
+      
+      const response = await publishPost(postData)
+      
+      if (response.code === 200 || response.code === 0) {
+        showToast('动态发布成功！')
+        resetForm()
+        router.push('/')
+      } else {
+        throw new Error(response.message || '发布失败')
+      }
     }
     
   } catch (error) {
-    console.error('发布动态失败:', error)
-    showToast(error.message || '发布失败，请重试')
+    console.error('操作失败:', error)
+    showToast(error.message || '操作失败，请重试')
   } finally {
     isPublishing.value = false
   }
@@ -776,6 +792,81 @@ const resetForm = () => {
   selectedMoods.value = []
   selectedTtl.value = null // 重置限时展示选择
 }
+
+// 添加编辑模式相关数据
+const isEditMode = ref(false)
+const editingMomentId = ref(null)
+const isLoadingMoment = ref(false)
+
+// 获取动态详情并回显
+const fetchMomentDetail = async (momentId) => {
+  try {
+    isLoadingMoment.value = true
+    console.log('获取动态详情:', momentId)
+    
+    const response = await getonlyup(momentId)
+    console.log('动态详情响应:', response)
+    
+    if (response.code === 200 || response.code === 0) {
+      const momentData = response.data
+      
+      // 回显内容
+      postContent.value = momentData.content || ''
+      
+      // 回显图片
+      if (momentData.imageList && Array.isArray(momentData.imageList)) {
+        mediaList.value = momentData.imageList.map(url => ({
+          type: 'image',
+          url: url,
+          file: null
+        }))
+      }
+      
+      // 回显心情（如果有）
+      if (momentData.mood && Array.isArray(momentData.mood)) {
+        selectedMoods.value = momentData.mood.map(m => m.label || m)
+      }
+      
+      console.log('动态数据回显完成:', {
+        content: postContent.value,
+        images: mediaList.value,
+        moods: selectedMoods.value
+      })
+      
+    } else {
+      throw new Error(response.message || '获取动态详情失败')
+    }
+  } catch (error) {
+    console.error('获取动态详情失败:', error)
+    showToast(error.message || '获取动态详情失败')
+    // 获取失败时返回上一页
+    router.go(-1)
+  } finally {
+    isLoadingMoment.value = false
+  }
+}
+
+// 在组件挂载时检查是否为编辑模式
+onMounted(async () => {
+  const { mode, momentId } = route.query
+  
+  if (mode === 'edit' && momentId) {
+    isEditMode.value = true
+    editingMomentId.value = parseInt(momentId)
+    
+    // 获取动态详情并回显
+    await fetchMomentDetail(momentId)
+  }
+  
+  // 原有的用户信息获取逻辑
+  if (userStore.userInfo) {
+    userInfo.value = {
+      name: userStore.userInfo.userName || userStore.userInfo.nickname || '用户',
+      avatar: userStore.userInfo.avatar || userStore.userInfo.avatarUrl || 'https://picsum.photos/100/100?random=1',
+      mood: '开心'
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -1630,42 +1721,8 @@ const resetForm = () => {
   }
 }
 
-/* 移除之前的复杂样式 */
-.cute-picker,
-.cute-header,
-.cute-options,
-.cute-option-item,
-.picker-footer,
-.footer-btn {
-  /* 这些样式已被简化版替代 */
-}
+
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

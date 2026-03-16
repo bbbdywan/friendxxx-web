@@ -6,10 +6,13 @@
         v-model="searchKeyword"
         placeholder="搜索动态、用户..."
         @search="handleSearch"
-        @cancel="$router.back()"
         show-action
         autofocus
-      />
+      >
+        <template #action>
+          <div @click="$router.back()" class="cancel-btn">取消</div>
+        </template>
+      </van-search>
     </div>
 
     <!-- 搜索类型切换 -->
@@ -180,10 +183,13 @@
     </van-tabs>
 
 
-    <!-- 热点话题（首次进入展示；搜索后仍保留在历史下方） -->
+    <!-- 热门话题 -->
     <div class="trending-section" v-if="!hasSearched">
       <div class="trending-header">
-        <h3>🔥 热点话题</h3>
+        <div class="header-left">
+          <span class="fire-icon">🔥</span>
+          <h3>热门话题</h3>
+        </div>
         <span class="trending-subtitle">实时热搜榜</span>
       </div>
 
@@ -198,32 +204,26 @@
           class="trending-item"
           @click="handleTrendingClick(topic)"
         >
-          <div class="trending-rank">
-            <span
-              class="rank-number"
-              :class="{ 'top-three': index < 3 }"
-            >
-              {{ index + 1 }}
-            </span>
+          <div class="trending-rank" :class="{ 'top-three': index < 3 }">
+            {{ index + 1 }}
           </div>
           <div class="trending-content">
             <h4 class="trending-title">{{ topic.title }}</h4>
             <div class="trending-meta" v-if="topic.desc_extr">
-              <span class="heat-value">{{ formatHeatValue(topic.desc_extr) }}热度</span>
+              <span class="heat-value">{{ formatHeatValue(topic.desc_extr) }}</span>
             </div>
           </div>
-          <div class="trending-icon" v-if="topic.icon">
+          <div class="trending-badge" v-if="topic.icon">
             <van-image
               :src="topic.icon"
-              width="16"
-              height="16"
+              width="20"
+              height="20"
               fit="cover"
+              round
             />
           </div>
         </div>
       </div>
-
-      <!-- 搜索历史（已上移，且仅在 hasSearched 时显示） -->
     </div>
   </div>
 </template>
@@ -396,12 +396,12 @@ const handleTrendingClick = (topic) => {
 
 // 格式化热度值
 const formatHeatValue = (value) => {
-  if (!value) return '0'
+  if (!value) return '0热度'
 
   if (value >= 10000) {
-    return (value / 10000).toFixed(1) + '万'
+    return (value / 10000).toFixed(1) + '万热度'
   }
-  return value.toString()
+  return value.toString() + '热度'
 }
 
 onMounted(() => {
@@ -416,13 +416,22 @@ onMounted(() => {
 <style scoped>
 .search-page {
   min-height: 100vh;
-  background: #faf9f7;
+  background: #f5f5f5;
 }
 
 .search-header {
   background: white;
-  padding: 8px 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 8px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.cancel-btn {
+  color: #333;
+  font-size: 15px;
+  padding: 0 16px;
+  cursor: pointer;
 }
 
 .search-results {
@@ -655,34 +664,39 @@ onMounted(() => {
   margin-left: 12px;
 }
 
-/* 热点话题 */
+/* 热门话题 */
 .trending-section {
-  padding: 20px 16px;
+  padding: 16px;
 }
 
 .trending-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  padding: 0 4px;
 }
 
-.trending-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
+.header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+.fire-icon {
+  font-size: 20px;
+}
+
+.trending-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+}
+
 .trending-subtitle {
   font-size: 12px;
   color: #999;
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 12px;
 }
 
 .trending-loading {
@@ -694,50 +708,43 @@ onMounted(() => {
 
 .trending-list {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-  margin-bottom: 24px;
 }
 
 .trending-item {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f8f8f8;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s;
 }
 
 .trending-item:last-child {
   border-bottom: none;
 }
 
-.trending-item:hover {
-  background: #fafafa;
-  transform: translateX(4px);
+.trending-item:active {
+  background: #f8f8f8;
 }
 
 .trending-rank {
-  margin-right: 16px;
-  min-width: 24px;
-}
-
-.rank-number {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  min-width: 28px;
+  height: 28px;
+  margin-right: 12px;
   font-size: 14px;
   font-weight: 600;
-  color: #666;
-  border-radius: 4px;
+  color: #999;
 }
 
-.rank-number.top-three {
-  background: linear-gradient(135deg, #ff6b9d, #ff8a80);
+.trending-rank.top-three {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ffa07a 100%);
   color: white;
+  border-radius: 6px;
   font-weight: 700;
 }
 
@@ -760,21 +767,22 @@ onMounted(() => {
 .trending-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .heat-value {
   font-size: 12px;
   color: #ff6b9d;
-  background: rgba(255, 107, 157, 0.1);
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-weight: 500;
 }
 
-.trending-icon {
+.trending-badge {
   margin-left: 12px;
-  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #ffe5f0;
+  border-radius: 50%;
 }
 
 

@@ -3,7 +3,7 @@
     <!-- 简单的顶部标题 -->
     <div class="header">
       <van-icon name="arrow-left" @click="$router.back()" />
-      <h1>AI助手</h1>
+      <h1>狸子</h1>
       <van-icon name="delete-o" @click="clearChat" />
     </div>
     

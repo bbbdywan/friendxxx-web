@@ -77,7 +77,10 @@
                       <span class="time">{{ formatTime(moment.createTime) }}</span>
                     </div>
                   </div>
-                  <van-icon name="delete-o" @click="deleteMoment(moment.id)" />
+                  <div class="moment-actions">
+                    <van-icon name="edit" @click="editMoment(moment)" />
+                    <van-icon name="delete-o" @click="deleteMoment(moment.id)" />
+                  </div>
                 </div>
 
                 <div class="moment-content">
@@ -243,6 +246,25 @@
             {{ tag }}
           </div>
         </div>
+      </div>
+    </van-popup>
+
+    <!-- 编辑动态弹窗 -->
+    <van-popup v-model:show="showEditModal" position="bottom" :style="{ height: '80%' }">
+      <div class="edit-modal">
+        <div class="modal-header">
+          <h3>编辑动态</h3>
+          <van-button type="primary" size="mini" @click="updateMoment">
+            保存
+          </van-button>
+        </div>
+        <van-field
+          v-model="editContent"
+          type="textarea"
+          placeholder="分享你的想法..."
+          rows="4"
+          autosize
+        />
       </div>
     </van-popup>
   </div>
@@ -676,6 +698,44 @@ const transformCachedUserToCardUser = (cachedUser) => {
     signature: cachedUser.signature
   }
 }
+
+// 添加编辑相关数据
+const showEditModal = ref(false)
+const editContent = ref('')
+const editingMoment = ref(null)
+
+// 编辑动态 - 跳转到编辑页面
+const editMoment = (moment) => {
+  router.push({
+    path: '/post',
+    query: {
+      mode: 'edit',
+      momentId: moment.id
+    }
+  })
+}
+
+// 更新动态
+const updateMoment = async () => {
+  try {
+    // 调用更新API
+    const response = await updateMomentApi(editingMoment.value.id, {
+      content: editContent.value
+    })
+    
+    if (response.code === 200) {
+      showToast('更新成功')
+      // 更新本地数据
+      const index = userMoments.value.findIndex(m => m.id === editingMoment.value.id)
+      if (index > -1) {
+        userMoments.value[index].content = editContent.value
+      }
+      showEditModal.value = false
+    }
+  } catch (error) {
+    showToast('更新失败')
+  }
+}
 </script>
 
 <style scoped>
@@ -920,6 +980,12 @@ const transformCachedUserToCardUser = (cachedUser) => {
   }
 }
 </style>
+
+
+
+
+
+
 
 
 
