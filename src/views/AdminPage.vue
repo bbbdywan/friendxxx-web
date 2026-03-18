@@ -1,15 +1,5 @@
 <template>
   <div class="admin-page-anime">
-    <!-- 装饰性背景元素 -->
-    <div class="bg-decoration">
-      <div class="cloud cloud-1"></div>
-      <div class="cloud cloud-2"></div>
-      <div class="cloud cloud-3"></div>
-      <div class="sparkle sparkle-1"></div>
-      <div class="sparkle sparkle-2"></div>
-      <div class="sparkle sparkle-3"></div>
-    </div>
-
     <!-- 顶部导航栏 -->
     <van-nav-bar
       title="管理中心"
@@ -30,8 +20,8 @@
       animated
       swipeable
       class="anime-tabs"
-      color="#ff9a9e"
-      title-active-color="#ff9a9e"
+      color="#FFB6C1"
+      title-active-color="#FFB6C1"
     >
       <!-- 用户管理 Tab -->
       <van-tab title="用户管理" name="users">
@@ -106,7 +96,7 @@
           </div>
 
           <!-- 加载状态 -->
-          <van-loading v-if="loadingUsers" type="spinner" color="#ff9a9e" vertical class="loading-center">
+          <van-loading v-if="loadingUsers" type="spinner" color="#FFB6C1" vertical class="loading-center">
             加载中...
           </van-loading>
 
@@ -190,14 +180,29 @@
           />
 
           <!-- 分页 -->
-          <div class="pagination-wrapper" v-if="totalUsers > pageSize">
-            <van-pagination
-              v-model="currentUserPage"
-              :total-items="totalUsers"
-              :items-per-page="pageSize"
-              :show-page-size="3"
-              @change="onPageChange"
-            />
+          <div class="pagination-wrapper" v-if="totalPages > 1">
+            <div class="simple-pagination">
+              <button
+                class="page-btn"
+                :disabled="currentUserPage <= 1"
+                @click="goToPrevPage"
+              >&lt;</button>
+              <input
+                type="number"
+                class="page-input"
+                v-model.number="pageInputValue"
+                @keyup.enter="goToInputPage"
+                @blur="goToInputPage"
+                min="1"
+                :max="totalPages"
+              />
+              <span class="page-total">/ {{ totalPages }}</span>
+              <button
+                class="page-btn"
+                :disabled="currentUserPage >= totalPages"
+                @click="goToNextPage"
+              >&gt;</button>
+            </div>
           </div>
         </div>
       </van-tab>
@@ -443,6 +448,7 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'AdminPage' })
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
@@ -472,6 +478,7 @@ const userEndDate = ref(['2025', '12', '31'])
 const userTimeFilterApplied = ref(false)
 
 const currentUserPage = ref(1)
+const pageInputValue = ref(1)
 const showUserDialog = ref(false)
 const isEditingUser = ref(false)
 const loadingUsers = ref(false)
@@ -515,6 +522,7 @@ const loadUsers = async () => {
       users.value = pageInfo.list || []
       totalUsers.value = parseInt(pageInfo.total) || 0
       totalPages.value = pageInfo.pages || 0
+      pageInputValue.value = currentUserPage.value
       
       console.log('用户列表加载成功:', {
         total: totalUsers.value,
@@ -539,7 +547,34 @@ const loadUsers = async () => {
 const onPageChange = (page) => {
   console.log('页码变化:', page)
   currentUserPage.value = page
+  pageInputValue.value = page
   loadUsers()
+}
+
+// 上一页
+const goToPrevPage = () => {
+  if (currentUserPage.value > 1) {
+    onPageChange(currentUserPage.value - 1)
+  }
+}
+
+// 下一页
+const goToNextPage = () => {
+  if (currentUserPage.value < totalPages.value) {
+    onPageChange(currentUserPage.value + 1)
+  }
+}
+
+// 跳转到输入页码
+const goToInputPage = () => {
+  let page = pageInputValue.value
+  if (!page || page < 1) page = 1
+  if (page > totalPages.value) page = totalPages.value
+  if (page !== currentUserPage.value) {
+    onPageChange(page)
+  } else {
+    pageInputValue.value = currentUserPage.value
+  }
 }
 
 // 格式化日期
@@ -867,118 +902,27 @@ watch(userSortType, () => {
 /* ========== 基础布局 ========== */
 .admin-page-anime {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffeef8 0%, #e6f3ff 50%, #fff5f5 100%);
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFF9F0 50%, #FFFFFF 100%);
   position: relative;
-  overflow: hidden;
   padding-bottom: 20px;
-}
-
-/* ========== 装饰性背景元素 ========== */
-.bg-decoration {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.cloud {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 100px;
-  animation: float 20s infinite ease-in-out;
-}
-
-.cloud-1 {
-  width: 120px;
-  height: 60px;
-  top: 10%;
-  left: -10%;
-  animation-delay: 0s;
-}
-
-.cloud-2 {
-  width: 100px;
-  height: 50px;
-  top: 30%;
-  right: -5%;
-  animation-delay: 5s;
-}
-
-.cloud-3 {
-  width: 90px;
-  height: 45px;
-  bottom: 20%;
-  left: 50%;
-  animation-delay: 10s;
-}
-
-.sparkle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: radial-gradient(circle, #ffd1dc 0%, transparent 70%);
-  border-radius: 50%;
-  animation: sparkle 3s infinite;
-}
-
-.sparkle-1 {
-  top: 15%;
-  left: 20%;
-  animation-delay: 0s;
-}
-
-.sparkle-2 {
-  top: 60%;
-  right: 15%;
-  animation-delay: 1s;
-}
-
-.sparkle-3 {
-  bottom: 25%;
-  left: 70%;
-  animation-delay: 2s;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateX(0) translateY(0);
-  }
-  50% {
-    transform: translateX(100vw) translateY(-20px);
-  }
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 /* ========== 导航栏 ========== */
 .anime-navbar {
-  background: linear-gradient(135deg, #ffa6c1 0%, #b4a5ff 100%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   position: relative;
   z-index: 10;
 }
 
 .anime-navbar :deep(.van-nav-bar__title) {
-  color: white;
+  color: #333;
   font-weight: 600;
   font-size: 18px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .anime-navbar :deep(.van-icon) {
-  color: white;
+  color: #333;
 }
 
 /* ========== Tab 样式 ========== */
@@ -989,8 +933,7 @@ watch(userSortType, () => {
 }
 
 .anime-tabs :deep(.van-tabs__wrap) {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .anime-tabs :deep(.van-tab) {
@@ -999,7 +942,7 @@ watch(userSortType, () => {
 }
 
 .anime-tabs :deep(.van-tabs__line) {
-  background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 100%);
+  background: #FFB6C1;
   height: 3px;
   border-radius: 3px;
 }
@@ -1022,10 +965,7 @@ watch(userSortType, () => {
 .section-title {
   font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #a18cd1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #FFB6C1;
   margin: 0;
   display: flex;
   align-items: center;
@@ -1038,25 +978,22 @@ watch(userSortType, () => {
 }
 
 .anime-button {
-  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  background: #FFB6C1;
   border: none;
-  box-shadow: 0 4px 12px rgba(255, 154, 158, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
 }
 
-.anime-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 154, 158, 0.4);
+.anime-button:active {
+  opacity: 0.8;
 }
 
 /* ========== 筛选卡片 ========== */
 .filter-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .anime-search {
@@ -1127,34 +1064,15 @@ watch(userSortType, () => {
 /* ========== 动漫风格卡片 ========== */
 .anime-card {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
 }
 
-.anime-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 50%, #a18cd1 100%);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.anime-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.anime-card:hover::before {
-  transform: scaleX(1);
+.anime-card:active {
+  background: rgba(250, 250, 250, 0.95);
 }
 
 /* ========== 用户卡片 ========== */
@@ -1308,10 +1226,76 @@ watch(userSortType, () => {
   padding: 20px 0;
 }
 
+.simple-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+  padding: 8px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.page-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  color: #333;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.page-btn:active:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.page-input {
+  width: 48px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.page-input::-webkit-outer-spin-button,
+.page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.page-input:focus {
+  border-color: #FFB6C1;
+}
+
+.page-total {
+  font-size: 15px;
+  color: #666;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 /* ========== 对话框 ========== */
 .anime-popup {
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
 }
 
 .dialog-content {
@@ -1325,10 +1309,7 @@ watch(userSortType, () => {
   font-weight: 600;
   text-align: center;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #ff9a9e 0%, #a18cd1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #FFB6C1;
 }
 
 .dialog-actions {
@@ -1350,7 +1331,7 @@ watch(userSortType, () => {
 }
 
 :deep(.van-button--primary) {
-  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  background: #FFB6C1;
   border: none;
 }
 
@@ -1359,7 +1340,7 @@ watch(userSortType, () => {
 }
 
 :deep(.van-radio__icon--checked .van-icon) {
-  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-  border-color: #ff9a9e;
+  background: #FFB6C1;
+  border-color: #FFB6C1;
 }
 </style>

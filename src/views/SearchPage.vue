@@ -17,94 +17,11 @@
 
     <!-- 搜索类型切换 -->
     <van-tabs v-if="hasSearched" v-model:active="activeTab" @change="handleTabChange" sticky>
-      <van-tab title="动态" name="post">
-        <div class="search-results">
-          <van-loading v-if="searchLoading" type="spinner" size="24">搜索中...</van-loading>
-
-          <div v-else-if="searchResults.length === 0 && hasSearched" class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <p>没有找到相关动态</p>
-            <p class="empty-tip">试试其他关键词吧</p>
-          </div>
-
-          <div v-else class="moments-list">
-            <div
-              v-for="moment in searchResults"
-              :key="moment.id"
-              class="moment-card"
-              @click="viewMoment(moment)"
-            >
-              <!-- 用户信息头部 -->
-              <div class="moment-header">
-                <van-image
-                  :src="moment.avatarUrl"
-                  width="44"
-                  height="44"
-                  round
-                  fit="cover"
-                  class="user-avatar"
-                >
-                  <template #error>
-                    <div class="avatar-error">👤</div>
-                  </template>
-                </van-image>
-                <div class="user-info">
-                  <h4 class="username">{{ moment.nickname }}</h4>
-                  <span class="time">{{ formatTime(moment.createTime) }}</span>
-                </div>
-                <div class="moment-actions">
-                  <van-icon name="ellipsis" size="16" />
-                </div>
-              </div>
-
-              <!-- 动态内容 -->
-              <div class="moment-content">
-                <p class="content-text">{{ moment.content }}</p>
-
-                <!-- 图片展示 -->
-                <div v-if="moment.imageList && Array.isArray(moment.imageList) && moment.imageList.length > 0" class="moment-images">
-                  <div class="image-grid" :class="`grid-${Math.min(moment.imageList.length, 3)}`">
-                    <van-image
-                      v-for="(img, index) in moment.imageList.slice(0, 9)"
-                      :key="index"
-                      :src="img"
-                      fit="cover"
-                      class="moment-image"
-                      @click.stop="previewImages(moment.imageList, index)"
-                    >
-                      <template #error>
-                        <div class="image-error">🖼️</div>
-                      </template>
-                    </van-image>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 互动统计 -->
-              <div class="moment-stats">
-                <div class="stat-item">
-                  <van-icon name="good-job-o" size="14" />
-                  <span>{{ moment.likeCount || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <van-icon name="chat-o" size="14" />
-                  <span>{{ moment.commentCount || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <van-icon name="share-o" size="14" />
-                  <span>分享</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </van-tab>
-
       <van-tab title="用户" name="user">
         <div class="search-results">
-          <van-loading v-if="searchLoading" type="spinner" size="24">搜索中...</van-loading>
+          <van-loading v-if="userSearchLoading && userSearchResults.length === 0" type="spinner" size="24">搜索中...</van-loading>
 
-          <div v-else-if="searchResults.length === 0 && hasSearched" class="empty-state">
+          <div v-else-if="userSearchResults.length === 0 && hasSearched" class="empty-state">
             <div class="empty-icon">👤</div>
             <p>没有找到相关用户</p>
             <p class="empty-tip">试试其他关键词吧</p>
@@ -112,57 +29,30 @@
 
           <div v-else class="users-list">
             <div
-              v-for="user in searchResults"
+              v-for="user in userSearchResults"
               :key="user.id"
               class="user-card"
               @click="viewUserProfile(user.id)"
             >
-              <div class="user-avatar-section">
-                <van-image
-                  :src="user.avatarUrl || `https://picsum.photos/64/64?random=${user.id}`"
-                  width="64"
-                  height="64"
-                  round
-                  fit="cover"
-                  class="user-avatar"
-                >
-                  <template #error>
-                    <div class="avatar-error">👤</div>
-                  </template>
-                </van-image>
-                <div class="user-status" v-if="user.isOnline">
-                  <div class="online-dot"></div>
-                </div>
-              </div>
+              <van-image
+                :src="user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`"
+                width="48"
+                height="48"
+                round
+                fit="cover"
+                class="user-avatar"
+              >
+                <template #error>
+                  <div class="avatar-error">👤</div>
+                </template>
+              </van-image>
 
               <div class="user-info">
-                <div class="user-basic">
-                  <h4 class="username">{{ user.username || user.userAccount }}</h4>
-                  <div class="user-meta">
-                    <span class="age" v-if="user.age">{{ user.age }}岁</span>
-                    <span class="gender">{{ getGenderText(user.gender) }}</span>
-                    <span class="location" v-if="user.hometown">{{ user.hometown }}</span>
-                  </div>
-                </div>
-
-                <p class="user-signature">{{ user.signature || '这个人很懒，什么都没写~' }}</p>
-
-                <div class="user-tags" v-if="user.tags">
-                  <van-tag
-                    v-for="tag in parseTags(user.tags).slice(0, 3)"
-                    :key="tag"
-                    size="mini"
-                    type="primary"
-                    round
-                  >
-                    {{ tag }}
-                  </van-tag>
-                </div>
-
-                <div class="user-details">
-                  <span class="detail-item" v-if="user.profession">{{ user.profession }}</span>
-                  <span class="detail-item" v-if="user.education">{{ user.education }}</span>
-                  <span class="detail-item" v-if="user.zodiac">{{ user.zodiac }}</span>
+                <h4 class="username">{{ user.username || user.userName || user.userAccount }}</h4>
+                <div class="user-meta">
+                  <span v-if="user.age">{{ user.age }}岁</span>
+                  <span v-if="user.gender">{{ getGenderText(user.gender) }}</span>
+                  <span v-if="user.hometown">{{ user.hometown }}</span>
                 </div>
               </div>
 
@@ -177,6 +67,25 @@
                 </van-button>
               </div>
             </div>
+
+            <!-- 加载更多 -->
+            <div v-if="userHasMore" class="load-more" @click="loadMoreUsers">
+              <van-loading v-if="userSearchLoading" type="spinner" size="16" />
+              <span v-else>加载更多</span>
+            </div>
+            <div v-else-if="userSearchResults.length > 0" class="no-more">
+              没有更多了
+            </div>
+          </div>
+        </div>
+      </van-tab>
+
+      <van-tab title="动态" name="post">
+        <div class="search-results">
+          <div class="developing-state">
+            <div class="developing-icon">🚧</div>
+            <p class="developing-title">功能开发中</p>
+            <p class="developing-tip">动态搜索功能正在开发中，敬请期待</p>
           </div>
         </div>
       </van-tab>
@@ -229,33 +138,32 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'SearchPage' })
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast, showImagePreview } from 'vant'
-import { search, getnews } from '../api/search.js'
+import { showToast } from 'vant'
+import { getnews } from '../api/search.js'
+import { selectAlluser } from '../api/user.js'
 
 const router = useRouter()
 const route = useRoute()
 
 const searchKeyword = ref('')
-const activeTab = ref('post')
-const searchLoading = ref(false)
-const searchResults = ref([])
+const activeTab = ref('user')
 const hasSearched = ref(false)
+
+// 用户搜索独立状态
+const userSearchResults = ref([])
+const userSearchLoading = ref(false)
+const userCurrentPage = ref(1)
+const userTotalPages = ref(0)
+const userHasMore = ref(false)
 
 
 
 const trendingTopics = ref([])
 const trendingLoading = ref(false)
 
-// 解析标签
-const parseTags = (tagsStr) => {
-  try {
-    return JSON.parse(tagsStr || '[]')
-  } catch {
-    return []
-  }
-}
 
 // 获取性别文本
 const getGenderText = (gender) => {
@@ -273,66 +181,72 @@ const handleSearch = async () => {
     return
   }
 
+  hasSearched.value = true
+
+  if (activeTab.value === 'user') {
+    await searchUsersByApi()
+  }
+}
+
+
+// 用户搜索 - 复用管理员接口
+const searchUsersByApi = async (loadMore = false) => {
   try {
-    searchLoading.value = true
-    hasSearched.value = true
+    userSearchLoading.value = true
 
-    const response = await search(
-      searchKeyword.value.trim(),
-      activeTab.value,
-      0,
-      20
-    )
-
-    console.log('搜索API响应:', response)
-
-    // 处理不同的响应格式
-    let data = []
-    if (response.code === 200 || response.code === 0) {
-      data = response.data || []
-    } else if (Array.isArray(response)) {
-      // 直接返回数组的情况
-      data = response
-    } else {
-      throw new Error(response.message || '搜索失败')
+    if (!loadMore) {
+      userCurrentPage.value = 1
+      userSearchResults.value = []
     }
 
-    searchResults.value = Array.isArray(data) ? data : []
-    console.log('搜索结果数量:', searchResults.value.length)
-    console.log('当前标签页:', activeTab.value)
-    console.log('搜索结果详情:', searchResults.value)
+    const params = {
+      pageNum: userCurrentPage.value,
+      pageSize: 10,
+      username: searchKeyword.value.trim()
+    }
 
+    const response = await selectAlluser(params)
+
+    if (response.code === 200 && response.data) {
+      const pageInfo = response.data
+      const list = pageInfo.list || []
+
+      if (loadMore) {
+        userSearchResults.value = [...userSearchResults.value, ...list]
+      } else {
+        userSearchResults.value = list
+      }
+
+      userTotalPages.value = pageInfo.pages || 0
+      userHasMore.value = userCurrentPage.value < userTotalPages.value
+    } else {
+      if (!loadMore) userSearchResults.value = []
+      showToast(response.message || '搜索失败')
+    }
   } catch (error) {
-    console.error('搜索失败:', error)
+    console.error('用户搜索失败:', error)
     showToast('搜索失败，请重试')
-    searchResults.value = []
+    if (!loadMore) userSearchResults.value = []
   } finally {
-    searchLoading.value = false
+    userSearchLoading.value = false
+  }
+}
+
+// 加载更多用户
+const loadMoreUsers = () => {
+  if (userHasMore.value && !userSearchLoading.value) {
+    userCurrentPage.value++
+    searchUsersByApi(true)
   }
 }
 
 // 切换搜索类型
 const handleTabChange = () => {
-  searchResults.value = []
   if (hasSearched.value && searchKeyword.value.trim()) {
     handleSearch()
   }
 }
 
-// 预览图片
-const previewImages = (images, startIndex = 0) => {
-  showImagePreview({
-    images,
-    startPosition: startIndex,
-    closeable: true
-  })
-}
-
-// 查看动态详情
-const viewMoment = (moment) => {
-  console.log('查看动态:', moment.id)
-  // 跳转到动态详情页
-}
 
 // 查看用户资料
 const viewUserProfile = (userId) => {
@@ -345,22 +259,6 @@ const startChat = (user) => {
   // 跳转到聊天页面
 }
 
-// 格式化时间
-const formatTime = (timestamp) => {
-  if (!timestamp) return '刚刚'
-
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now - date
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  return `${days}天前`
-}
 
 // 获取热点话题
 const fetchTrendingTopics = async () => {
@@ -454,109 +352,29 @@ onMounted(() => {
   color: #ccc;
 }
 
-/* 动态卡片样式 */
-.moments-list {
-  gap: 12px;
+/* 开发中状态 */
+.developing-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #999;
 }
 
-.moment-card {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
+.developing-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
 }
 
-.moment-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-}
-
-.moment-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.moment-header .user-info {
-  margin-left: 12px;
-  flex: 1;
-}
-
-.moment-header .username {
-  margin: 0;
-  font-size: 15px;
+.developing-title {
+  font-size: 17px;
   font-weight: 600;
-  color: #333;
-}
-
-.moment-header .time {
-  font-size: 12px;
-  color: #999;
-}
-
-.moment-actions {
-  color: #999;
-}
-
-.content-text {
-  margin: 0 0 12px 0;
-  line-height: 1.6;
-  color: #333;
-  font-size: 15px;
-}
-
-.moment-images {
-  margin: 12px 0;
-}
-
-.image-grid {
-  display: grid;
-  gap: 6px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.grid-1 {
-  grid-template-columns: 1fr;
-  max-width: 200px;
-}
-
-.grid-2 {
-  grid-template-columns: 1fr 1fr;
-}
-
-.grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.moment-image {
-  width: 100%;
-  height: 100px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.moment-stats {
-  display: flex;
-  gap: 24px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f5f5f5;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
   color: #666;
-  cursor: pointer;
+  margin: 0 0 8px 0;
 }
 
-.stat-item:hover {
-  color: #ff6b9d;
+.developing-tip {
+  font-size: 14px;
+  color: #ccc;
+  margin: 0;
 }
 
 /* 用户卡片样式 */
@@ -566,38 +384,22 @@ onMounted(() => {
 
 .user-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   background: white;
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   cursor: pointer;
 }
 
-.user-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+.user-card:active {
+  background: #fafafa;
 }
 
-.user-avatar-section {
-  position: relative;
+.user-card .user-avatar {
+  flex-shrink: 0;
   margin-right: 12px;
-}
-
-.user-status {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-}
-
-.online-dot {
-  width: 12px;
-  height: 12px;
-  background: #07c160;
-  border-radius: 50%;
-  border: 2px solid white;
 }
 
 .user-info {
@@ -605,63 +407,51 @@ onMounted(() => {
   min-width: 0;
 }
 
-.user-basic {
-  margin-bottom: 8px;
-}
-
-.user-basic .username {
+.user-info .username {
   margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-meta {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
-  color: #666;
-}
-
-.user-meta span {
-  position: relative;
+  color: #999;
 }
 
 .user-meta span:not(:last-child)::after {
   content: '·';
-  margin-left: 8px;
-  color: #ccc;
-}
-
-.user-signature {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #666;
-  line-height: 1.4;
-}
-
-.user-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
-
-.user-details {
-  display: flex;
-  gap: 8px;
-  font-size: 12px;
-  color: #999;
-}
-
-.detail-item {
-  background: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 4px;
+  margin-left: 6px;
+  color: #ddd;
 }
 
 .user-actions {
+  flex-shrink: 0;
   margin-left: 12px;
+}
+
+.load-more {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 14px;
+  color: #999;
+  cursor: pointer;
+}
+
+.load-more:active {
+  color: #666;
+}
+
+.no-more {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 13px;
+  color: #ccc;
 }
 
 /* 热门话题 */

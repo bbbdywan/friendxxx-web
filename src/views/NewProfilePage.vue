@@ -293,6 +293,7 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'NewProfilePage' })
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user.js'

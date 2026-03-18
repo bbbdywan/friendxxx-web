@@ -271,6 +271,7 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'DiscoverPage' })
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
@@ -321,43 +322,6 @@ const allTags = ref([
 // 用户数据 - 改为空数组
 const allUsers = ref([])
 
-// 预设卡片数据
-const defaultCards = [
-  {
-    id: 'default1',
-    name: '白白白',
-    age: 20,
-    distance: 1.0,
-    avatar: '/预设.jpg',
-    tags: ['java', '健身房撸铁', '手工DIY'],
-    isOnline: true,
-    bio: '正在为你寻找更多用户...',
-    photos: ['/预设.jpg']
-  },
-  {
-    id: 'default2',
-    name: '小困春月',
-    age: 22,
-    distance: 1.5,
-    avatar: '/预设2.jpg',
-    tags: ['设计师', '本科', '四川'],
-    isOnline: true,
-    bio: '正在为你寻找更多用户...',
-    photos: ['/预设2.jpg']
-  },
-  {
-    id: 'default3',
-    name: '朱十浩',
-    age: 22,
-    distance: 2.0,
-    avatar: '/预设3.jpg',
-    tags: ['go', 'C++', 'java'],
-    isOnline: true,
-    bio: '正在为你寻找更多用户...',
-    photos: ['/预设3.jpg']
-  }
-]
-
 // 计算当前显示的用户
 const currentUsers = computed(() => {
   let users = []
@@ -375,11 +339,6 @@ const currentUsers = computed(() => {
       break
     default:
       users = allUsers.value
-  }
-  
-  // 如果没有真实用户数据且正在加载，显示预设卡片
-  if (users.length === 0 && isLoading.value) {
-    return defaultCards
   }
   
   return users
@@ -580,7 +539,7 @@ onMounted(async () => {
     const cachedUsers = Array.from(userStore.userCache.values()).map(transformCachedUserToCardUser)
     allUsers.value = cachedUsers
   } else if (allUsers.value.length === 0) {
-    // 没有缓存数据时，设置加载状态（会显示预设卡片）
+    // 没有缓存数据时，从API加载用户数据
     isLoading.value = true
     await fetchUsersFromApi()
   }

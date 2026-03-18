@@ -323,6 +323,7 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'HomePage' })
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import lottie from 'lottie-web'
@@ -333,6 +334,20 @@ import { parseTags } from '../api/types.js'
 import { showToast, showImagePreview } from 'vant'
 import EmojiRain from '../components/EmojiRain.vue'
 import { getnews } from '../api/search.js'
+
+// 模块级别缓存 Lottie JSON 数据，避免重复网络请求
+let cachedAiData = null
+let cachedLogoData = null
+
+const preloadLottieData = async () => {
+  const [aiRes, logoRes] = await Promise.all([
+    cachedAiData ? Promise.resolve(cachedAiData) : fetch('/0MAdI0iKs8.json').then(r => r.json()),
+    cachedLogoData ? Promise.resolve(cachedLogoData) : fetch('/Loader cat.json').then(r => r.json())
+  ])
+  cachedAiData = aiRes
+  cachedLogoData = logoRes
+  return { aiData: cachedAiData, logoData: cachedLogoData }
+}
 
 const userStore = useUserStore()
 const $router = useRouter()
@@ -711,23 +726,29 @@ onMounted(async () => {
     fetchRecommendUsers(),
     fetchMoments()
   ])
-  if (lottieAiRef.value) {
-    lottie.loadAnimation({
-      container: lottieAiRef.value,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      path: '/0MAdI0iKs8.json'
-    })
-  }
-  if (lottieLogoRef.value) {
-    lottie.loadAnimation({
-      container: lottieLogoRef.value,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      path: '/Loader cat.json'
-    })
+  // 使用缓存的 Lottie 数据，避免重复网络请求
+  try {
+    const { aiData, logoData } = await preloadLottieData()
+    if (lottieAiRef.value) {
+      lottie.loadAnimation({
+        container: lottieAiRef.value,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: aiData
+      })
+    }
+    if (lottieLogoRef.value) {
+      lottie.loadAnimation({
+        container: lottieLogoRef.value,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: logoData
+      })
+    }
+  } catch (e) {
+    console.error('Lottie 加载失败:', e)
   }
 })
 

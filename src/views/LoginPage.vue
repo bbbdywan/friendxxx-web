@@ -120,16 +120,6 @@
         </van-form>
       </div>
 
-      <!-- 其他操作链接 -->
-      <div class="login-footer">
-        <div class="footer-links">
-          <span class="link" @click="goToRegister">立即注册</span>
-          <span class="divider">|</span>
-          <span class="link" @click="goToApiTest">API测试</span>
-          <span class="divider">|</span>
-          <span class="link" @click="goToDebug">调试页面</span>
-        </div>
-      </div>
     </div>
 
     <!-- 忘记密码弹窗 -->
@@ -265,21 +255,6 @@ const handleLogin = async () => {
 }
 
 // 其他方法
-const goToRegister = () => {
-  showToast({
-    message: '该功能暂未开发，请点击体验账号登录',
-    type: 'fail',
-    duration: 3000
-  })
-}
-
-const goToApiTest = () => {
-  router.push('/api-test')
-}
-
-const goToDebug = () => {
-  router.push('/debug')
-}
 
 const handleForgotPassword = () => {
   showToast('验证码已发送')
@@ -409,7 +384,7 @@ const confirmGuestLogin = async () => {
 <style scoped>
 .login-page {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(180deg, #E8F5E8 0%, #F0F8F0 30%, #F8FFF8 70%, #FFFFFF 100%);
   display: flex;
   flex-direction: column;
@@ -531,7 +506,7 @@ const confirmGuestLogin = async () => {
 
 /* 登录按钮 */
 .login-button-container {
-  margin-bottom: 60px;
+  margin-bottom: 20px;
   margin-top: 40px;
 }
 

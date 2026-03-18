@@ -19,8 +19,8 @@ export function simpleChat(query, userId) {
  */
 export async function streamChat(query, userId, onChunk) {
   // 使用相对路径，nginx会代理到后端
- //const url = `/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`
-  const url = `http://localhost:8080/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`
+ const url = `/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`
+  //const url = `http://localhost:8080/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`
   try {
     console.log('开始流式请求:', url)
     

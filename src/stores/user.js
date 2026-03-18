@@ -17,6 +17,26 @@ export const useUserStore = defineStore('user', () => {
     return !!(token.value && userInfo.value)
   })
   
+  // 标记回调是否已设置，避免重复覆盖
+  let _wsCallbacksInitialized = false
+
+  // 初始化WebSocket回调（只执行一次）
+  const _initWsCallbacks = () => {
+    if (_wsCallbacksInitialized) return
+    _wsCallbacksInitialized = true
+
+    // 设置连接/断开状态同步
+    wsManager.onConnected = () => {
+      wsConnected.value = true
+      console.log('WebSocket连接状态: 已连接')
+    }
+
+    wsManager.onDisconnected = () => {
+      wsConnected.value = false
+      console.log('WebSocket连接状态: 已断开')
+    }
+  }
+
   // WebSocket连接方法
   const connectWebSocket = async () => {
     try {
@@ -24,36 +44,20 @@ export const useUserStore = defineStore('user', () => {
         console.log('用户信息不存在，无法连接WebSocket')
         return false
       }
-      
-      console.log('开始连接WebSocket，用户ID:', userInfo.value.id)
-      
-      // 连接WebSocket
-      wsManager.connect(userInfo.value.id)
-      
-      // 监听连接状态变化
-      wsManager.onMessage('connection', (data) => {
-        if (data.type === 'connected') {
-          wsConnected.value = true
-          console.log('WebSocket连接成功')
-        } else if (data.type === 'disconnected') {
-          wsConnected.value = false
-          console.log('WebSocket连接断开')
-        }
-      })
-      
-      // 设置连接状态监听
-      const originalOnConnected = wsManager.onConnected
-      wsManager.onConnected = () => {
+
+      // 确保回调只初始化一次
+      _initWsCallbacks()
+
+      // 如果已经连接，直接返回
+      if (wsManager.isConnected()) {
+        console.log('WebSocket已处于连接状态，跳过')
         wsConnected.value = true
-        if (originalOnConnected) originalOnConnected()
+        return true
       }
-      
-      const originalOnDisconnected = wsManager.onDisconnected
-      wsManager.onDisconnected = () => {
-        wsConnected.value = false
-        if (originalOnDisconnected) originalOnDisconnected()
-      }
-      
+
+      console.log('开始连接WebSocket，用户ID:', userInfo.value.id)
+      wsManager.connect(userInfo.value.id)
+
       return true
     } catch (error) {
       console.error('WebSocket连接失败:', error)
