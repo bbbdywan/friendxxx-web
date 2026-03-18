@@ -20,7 +20,7 @@ class WebSocketManager {
     // 使用当前域名，nginx会代理WebSocket连接
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     //const host = window.location.host // 确保这行存在
-   const host = 'localhost:8080'
+    const host = 'localhost:8080'
     const wsUrl = `${protocol}//${host}/api/websocket/${userId}`
     
     try {

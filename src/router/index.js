@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import pcRoutes from '../pc/router/pc-routes.js'
 import HomePage from '../views/HomePage.vue'
 import DiscoverPage from '../views/DiscoverPage.vue'
 import ChatPage from '../views/ChatPage.vue'
@@ -264,9 +265,51 @@ const routes = [
   }
 ]
 
+// 屏幕宽度阈值：大于 768px 视为 PC 端
+const PC_BREAKPOINT = 768
+
+function isPC() {
+  return window.innerWidth > PC_BREAKPOINT
+}
+
+// 移动端路由 <-> PC端路由 映射
+const mobileToPcMap = {
+  '/': '/pc',
+  '/login': '/pc/login',
+  '/discover': '/pc/discover',
+  '/chat': '/pc/chat',
+  '/profile': '/pc/profile',
+  '/ai-chat': '/pc/ai-chat',
+  '/search': '/pc/search',
+  '/admin': '/pc/admin'
+}
+
+const pcToMobileMap = Object.fromEntries(
+  Object.entries(mobileToPcMap).map(([m, p]) => [p, m])
+)
+
+// 动态路由映射（带参数）
+function getMappedRoute(path, toPC) {
+  if (toPC) {
+    // 移动端 -> PC端
+    if (mobileToPcMap[path]) return mobileToPcMap[path]
+    // /chat/:id -> /pc/chat (PC端聊天是内嵌的)
+    if (path.startsWith('/chat/')) return '/pc/chat'
+    // /user/:id -> /pc/user/:id
+    if (path.startsWith('/user/')) return '/pc' + path
+    return null
+  } else {
+    // PC端 -> 移动端
+    if (pcToMobileMap[path]) return pcToMobileMap[path]
+    // /pc/user/:id -> /user/:id
+    if (path.startsWith('/pc/user/')) return path.replace('/pc', '')
+    return null
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: [...routes, ...pcRoutes]
 })
 
 // 路由守卫
@@ -276,17 +319,39 @@ router.beforeEach(async (to, from, next) => {
     document.title = `${to.meta.title} - 心事小屋`
   }
 
+  const isPcDevice = isPC()
+  const isPcRoute = to.path.startsWith('/pc')
+
+  // 自动重定向：PC设备访问移动端路由 -> 跳PC端，移动设备访问PC路由 -> 跳移动端
+  // 不处理 debug/test 等开发路由
+  const isDevRoute = ['/debug', '/test', '/simple', '/login-debug', '/login-test', '/api-test', '/user-api-test', '/recommend-debug', '/chat-test', '/chat-debug', '/message-send-test'].includes(to.path)
+
+  if (!isDevRoute) {
+    if (isPcDevice && !isPcRoute) {
+      const mapped = getMappedRoute(to.path, true)
+      if (mapped) {
+        next({ path: mapped, query: to.query, replace: true })
+        return
+      }
+    } else if (!isPcDevice && isPcRoute) {
+      const mapped = getMappedRoute(to.path, false)
+      if (mapped) {
+        next({ path: mapped, query: to.query, replace: true })
+        return
+      }
+    }
+  }
+
   // 检查是否需要登录
   if (to.meta.requiresAuth !== false) {
     const { useUserStore } = await import('../stores/user.js')
     const userStore = useUserStore()
 
-    // 通过API检查登录状态，而不是检查token
     const isLoggedIn = await userStore.checkLoginStatus()
 
     if (!isLoggedIn) {
       next({
-        path: '/login',
+        path: isPcRoute ? '/pc/login' : '/login',
         query: { redirect: to.fullPath }
       })
       return
@@ -294,13 +359,12 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 如果已登录且访问登录页，跳转到首页
-  if (to.path === '/login') {
+  if (to.path === '/login' || to.path === '/pc/login') {
     const { useUserStore } = await import('../stores/user.js')
     const userStore = useUserStore()
 
-    // 检查是否有用户信息，而不是token
     if (userStore.userInfo) {
-      next('/')
+      next(isPcRoute ? '/pc' : '/')
       return
     }
   }

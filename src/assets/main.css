@@ -16,9 +16,9 @@
   }
 }
 
-/* 桌面端适配 */
+/* 桌面端适配 - 仅移动端路由生效 */
 @media (min-width: 769px) {
-  #app {
+  #app.mobile-mode {
     max-width: 414px; /* iPhone 6 Plus 宽度 */
     margin: 0 auto;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
@@ -42,7 +42,7 @@ a:hover {
 /* 移除旧的响应式布局，已在上面重新定义 */
 
 @media (min-width: 1024px) {
-  #app {
+  #app.mobile-mode {
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--spacing-xl);

@@ -1,6 +1,7 @@
 import './assets/main.css'
 import 'vant/lib/index.css'
 import './styles/vant-theme.css'
+import 'element-plus/dist/index.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
