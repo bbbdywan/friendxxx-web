@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
 import { hrlogin } from '../api/user.js'
@@ -266,6 +266,11 @@ onMounted(() => {
   if (userStore.isLoggedIn) {
     router.replace('/')
   }
+  document.body.style.overflow = 'hidden'
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 
 // 体验用户一键登录

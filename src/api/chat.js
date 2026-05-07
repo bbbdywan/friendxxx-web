@@ -198,6 +198,15 @@ export function getMessageList(UserId) {
 }
 
 /**
+ * 清零某会话未读数
+ * @param {number} userId - 当前用户ID
+ * @param {number} chatUserId - 对方用户ID
+ */
+export function clearUnread(userId, chatUserId) {
+  return request.put(`/websocket/clearUnread`, null, { params: { userId, chatUserId } })
+}
+
+/**
  * 删除聊天消息
  * @param {string} chatKey - 聊天标识，格式：private_{minId}_{maxId}
  * @returns {Promise} 删除响应

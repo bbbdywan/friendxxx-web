@@ -106,7 +106,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getUserTagsList } from '@/api/user.js'
+import { getUserTagsList, getRecommendUsers } from '@/api/user.js'
+import { parseTags } from '@/api/types.js'
 import { getstup } from '@/api/post.js'
 import { useUserStore } from '@/stores/user.js'
 import { wsManager } from '@/utils/websocket.js'
@@ -166,31 +167,41 @@ function handleFeatureClick(key) {
   }
 }
 
-// Fetch recommended users
+// Fetch recommended users via recommendation API
 async function fetchUsers() {
   loading.value = true
   try {
-    const res = await getUserTagsList({ pageNum: 1, pageSize: 20 })
-    const records = res?.data?.records || res?.data || res?.records || []
-    userList.value = records.map((u) => {
-      let tags = []
-      if (u.tags) {
-        try {
-          tags = typeof u.tags === 'string' ? JSON.parse(u.tags) : u.tags
-        } catch {
-          tags = []
-        }
-      }
-      return {
+    const currentUserId = userStore.userInfo?.id
+    if (!currentUserId) {
+      // 未登录降级
+      const res = await getUserTagsList({ pageNum: 1, pageSize: 20 })
+      const records = res?.data?.list || res?.data?.records || res?.data || []
+      userList.value = records.map((u) => ({
         id: u.id,
         name: u.username || u.userAccount || '未知用户',
         age: u.age || null,
         avatar: u.avatarUrl || '',
         distance: (Math.random() * 10 + 0.5).toFixed(1),
-        tags: Array.isArray(tags) ? tags : [],
-        isOnline: Math.random() > 0.5
-      }
-    })
+        tags: parseTags(u.tags),
+        isOnline: Math.random() > 0.5,
+        matchScore: 0
+      }))
+      loading.value = false
+      return
+    }
+
+    const res = await getRecommendUsers({ userId: currentUserId, limit: 20 })
+    const list = res?.data || []
+    userList.value = list.map((u) => ({
+      id: u.id,
+      name: u.userName || '用户',
+      age: u.age || null,
+      avatar: u.avatar || '',
+      distance: (Math.random() * 10 + 0.5).toFixed(1),
+      tags: Array.isArray(u.tags) ? u.tags : parseTags(u.tags || '[]'),
+      isOnline: Math.random() > 0.5,
+      matchScore: u.matchScore || 0
+    }))
   } catch (err) {
     console.error('获取推荐用户失败:', err)
   } finally {

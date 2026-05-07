@@ -69,9 +69,8 @@ export const useUserStore = defineStore('user', () => {
   // 断开WebSocket连接
   const disconnectWebSocket = () => {
     try {
-      wsManager.disconnect()
+      wsManager.reset()
       wsConnected.value = false
-      console.log('WebSocket连接已断开')
       return true
     } catch (error) {
       console.error('断开WebSocket失败:', error)

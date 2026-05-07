@@ -21,8 +21,31 @@
 
     <!-- 聊天列表 -->
     <div class="chat-list" v-if="!loading">
-      <div 
-        v-for="chat in filteredChats" 
+      <!-- 互动消息入口（固定在第一位） -->
+      <div class="chat-item interaction-item" @click="$router.push('/interactions')">
+        <div class="chat-avatar">
+          <div class="interaction-icon">
+            <van-icon name="like-o" size="26" color="#ff6b8a" />
+          </div>
+          <div v-if="interactionUnread > 0" class="unread-badge">
+            {{ interactionUnread > 99 ? '99+' : interactionUnread }}
+          </div>
+        </div>
+        <div class="chat-content">
+          <div class="chat-header">
+            <h3 class="chat-name">互动消息</h3>
+            <span class="chat-time" v-if="lastInteraction">{{ formatTime(lastInteraction.timestamp) }}</span>
+          </div>
+          <div class="chat-preview">
+            <span class="last-message" :class="{ unread: interactionUnread > 0 }">
+              {{ lastInteractionText }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-for="chat in filteredChats"
         :key="chat.id"
         class="chat-item"
         @click="enterChat(chat)"
@@ -113,8 +136,57 @@ import { useRouter } from 'vue-router'
 import { showToast, showDialog } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { getChatList, getMessageList, deleteChatMessage } from '@/api/chat'
+import { getUnreadCount, getInformList } from '@/api/interaction'
 import wsManager from '@/utils/websocket'
 import EmptyState from '../components/EmptyState.vue'
+
+// 互动消息角标 & 预览
+const interactionUnread = ref(0)
+const lastInteraction = ref(null)
+
+const lastInteractionText = computed(() => {
+  if (!lastInteraction.value) return '点赞和评论通知'
+  const n = lastInteraction.value
+  if (n.type === 'like') return `${n.fromNickname || '有人'}赞了你的动态`
+  if (n.type === 'comment') return `${n.fromNickname || '有人'}评论：${n.content}`
+  return '点赞和评论通知'
+})
+
+// 拉取未读数 + 最新一条预览
+const fetchInteractionState = async (userId) => {
+  try {
+    const [unreadRes, listRes] = await Promise.all([
+      getUnreadCount(userId),
+      getInformList(userId, 1, 1)
+    ])
+    if (unreadRes.code === 200 || unreadRes.code === 0) {
+      interactionUnread.value = parseInt(unreadRes.data) || 0
+    }
+    if ((listRes.code === 200 || listRes.code === 0) && listRes.data?.length > 0) {
+      lastInteraction.value = listRes.data[0]
+    }
+  } catch (e) {
+    console.error('获取互动消息状态失败:', e)
+  }
+}
+
+// WebSocket 实时通知：未读数 +1，更新预览
+const handleNotification = (data) => {
+  if (data.type !== 'notification') return
+  interactionUnread.value = (parseInt(interactionUnread.value) || 0) + 1
+  lastInteraction.value = {
+    type: data.notifyType,
+    fromNickname: data.fromNickname,
+    content: data.content,
+    postId: data.postId,
+    createTime: new Date(data.timestamp).toISOString()
+  }
+  if (data.notifyType === 'like') {
+    showToast({ message: `${data.fromNickname || '有人'}赞了你的动态`, icon: 'like-o', duration: 2000 })
+  } else if (data.notifyType === 'comment') {
+    showToast({ message: `${data.fromNickname || '有人'}评论了你的动态`, icon: 'chat-o', duration: 2000 })
+  }
+}
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -176,7 +248,7 @@ const fetchChatList = async () => {
               timestamp: new Date(item.createTime),
               sender: currentUserId === senderId ? 'me' : 'other'
             },
-            unreadCount: 0
+            unreadCount: item.unreadCount || 0
           }
         })
         .filter(chat => chat !== null) // 过滤掉null值（即获取不到用户信息的聊天）
@@ -281,17 +353,14 @@ const deleteChat = async (chatId) => {
 // 初始化时加载用户缓存和注册消息监听
 onMounted(async () => {
   console.log('ChatPage mounted, 开始初始化...')
-  console.log('wsManager状态:', wsManager)
-  console.log('用户信息:', userStore.userInfo)
-  
+
   await fetchChatList()
-  
+
   // 确保用户信息已加载
   if (!userStore.userInfo?.id) {
-    console.log('用户信息未加载，尝试获取...')
     await userStore.fetchCurrentUser()
   }
-  
+
   // 加载用户缓存
   try {
     await userStore.loadUserCache()
@@ -299,25 +368,24 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载用户缓存失败:', error)
   }
-  
-  // 测试缓存是否正常工作
-  console.log('测试获取用户ID为1的缓存信息:', userStore.getCachedUser(1))
-  
-  // 注册消息监听...
-  if (wsManager) {
-    if (typeof wsManager.onMessage === 'function') {
-      wsManager.onMessage('private', handleIncomingMessage)
-      console.log('已注册private消息监听')
-    }
+
+  // 从接口拉取互动消息未读数 + 最新预览
+  const uid = userStore.userInfo?.id
+  if (uid) fetchInteractionState(uid)
+
+  // 注册消息监听
+  if (wsManager && typeof wsManager.onMessage === 'function') {
+    wsManager.onMessage('private', handleIncomingMessage)
+    wsManager.onMessage('notification', handleNotification)
+    console.log('已注册消息监听')
   }
 })
 
 // 组件卸载时清理监听器
 onUnmounted(() => {
-  console.log('ChatPage unmounted, 清理监听器...')
   if (wsManager && typeof wsManager.offMessage === 'function') {
     wsManager.offMessage('private', handleIncomingMessage)
-    console.log('已移除private消息监听器')
+    wsManager.offMessage('notification', handleNotification)
   }
 })
 
@@ -482,7 +550,7 @@ const updateChatList = (userId, userInfo, messageContent, timestamp) => {
   if (existingChatIndex >= 0) {
     // 更新现有聊天记录
     const existingChat = chats.value[existingChatIndex]
-    chatItem.unreadCount = (existingChat.unreadCount || 0) + 1
+    chatItem.unreadCount = (parseInt(existingChat.unreadCount) || 0) + 1
     
     console.log('更新现有聊天记录')
     // 移除旧记录并添加到顶部
@@ -504,6 +572,22 @@ const updateChatList = (userId, userInfo, messageContent, timestamp) => {
 </script>
 
 <style scoped>
+/* 互动消息入口图标 */
+.interaction-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff0f3, #ffe4e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255, 107, 138, 0.2);
+}
+
+.interaction-item {
+  background: rgba(255, 240, 243, 0.6) !important;
+}
+
 .chat-page {
   min-height: 100vh;
   background: linear-gradient(135deg, var(--cream-white) 0%, rgba(255,182,193,0.05) 100%);

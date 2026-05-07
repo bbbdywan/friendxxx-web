@@ -106,14 +106,24 @@
     <!-- 功能菜单 -->
     <div class="menu-section">
       <van-cell-group inset>
-        <van-cell 
-          title="修改个人资料" 
-          icon="edit" 
-          is-link 
+        <van-cell
+          title="修改个人资料"
+          icon="edit"
+          is-link
           @click="openEditModal"
         />
       </van-cell-group>
-      
+
+      <van-cell-group inset>
+        <van-cell
+          title="AI提示词设置"
+          icon="chat-o"
+          is-link
+          label="自定义AI人设与对话风格"
+          @click="router.push('/prompt')"
+        />
+      </van-cell-group>
+
       <!-- 管理员专属入口 -->
       <van-cell-group inset>
         <van-cell 

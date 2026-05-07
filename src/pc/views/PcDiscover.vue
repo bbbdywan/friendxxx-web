@@ -180,7 +180,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { getUserTagsList } from '@/api/user.js'
+import { getUserTagsList, getRecommendUsers } from '@/api/user.js'
+import { parseTags } from '@/api/types.js'
 import { getuserup, deleteMoment as deleteMomentApi, getstup } from '@/api/post.js'
 import { useUserStore } from '@/stores/user.js'
 import { wsManager } from '@/utils/websocket.js'
@@ -269,7 +270,7 @@ const filteredUsers = computed(() => {
   }
 })
 
-// Fetch users from API (supports pagination)
+// Fetch users from API (supports pagination, uses recommend API for recommend tab)
 const fetchUsersFromApi = async (page = 1) => {
   try {
     if (page === 1) {
@@ -277,26 +278,60 @@ const fetchUsersFromApi = async (page = 1) => {
     } else {
       loadingMore.value = true
     }
-    const response = await getUserTagsList({ pageNum: page, pageSize: pageSize.value })
 
-    if (response.code === 200 && response.data) {
-      const { list } = response.data
-      if (list && list.length > 0) {
-        userStore.cacheUsers(list)
+    if (activeTab.value === 'recommend') {
+      // 推荐tab：使用推荐API
+      const currentUserId = userStore.userInfo?.id
+      if (!currentUserId) {
+        isLoading.value = false
+        loadingMore.value = false
+        return
       }
-      const newUsers = (list || []).map(transformApiUserToCardUser)
+      const response = await getRecommendUsers({
+        userId: currentUserId,
+        limit: pageSize.value,
+        ageMin: ageRange.value[0],
+        ageMax: ageRange.value[1]
+      })
 
-      if (page === 1) {
+      if (response.code === 200 && response.data) {
+        const list = Array.isArray(response.data) ? response.data : []
+        const newUsers = list.map(u => ({
+          id: u.id,
+          name: u.userName || '用户',
+          age: u.age || 22,
+          distance: (Math.random() * 5 + 0.5).toFixed(1),
+          avatar: (u.avatar || `https://picsum.photos/300/400?random=${u.id}`).trim(),
+          tags: Array.isArray(u.tags) ? u.tags.slice(0, 3) : parseTags(u.tags || '[]').slice(0, 3),
+          isOnline: Math.random() > 0.5,
+          bio: u.signature || '这个人很神秘，什么都没有留下...',
+          matchScore: u.matchScore || 0
+        }))
         allUsers.value = newUsers
-      } else {
-        allUsers.value.push(...newUsers)
-      }
-
-      // Check if no more data
-      if (!list || list.length < pageSize.value) {
         noMoreData.value = true
       }
-      currentPage.value = page
+    } else {
+      // 附近/在线tab：使用标签列表API
+      const response = await getUserTagsList({ pageNum: page, pageSize: pageSize.value })
+
+      if (response.code === 200 && response.data) {
+        const { list } = response.data
+        if (list && list.length > 0) {
+          userStore.cacheUsers(list)
+        }
+        const newUsers = (list || []).map(transformApiUserToCardUser)
+
+        if (page === 1) {
+          allUsers.value = newUsers
+        } else {
+          allUsers.value.push(...newUsers)
+        }
+
+        if (!list || list.length < pageSize.value) {
+          noMoreData.value = true
+        }
+        currentPage.value = page
+      }
     }
   } catch (error) {
     console.error('获取用户数据失败:', error)

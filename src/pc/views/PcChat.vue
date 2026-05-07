@@ -308,7 +308,10 @@ onMounted(() => {
   }
 
   // 注册私聊消息处理器（type 为 'private'）
-  wsManager.onMessage('private', (data) => {
+  wsManager.onMessage('private', handlePrivateMessage)
+})
+
+const handlePrivateMessage = (data) => {
     const fromId = String(data.fromUserId || data.fromId || data.senderId)
     // 如果当前正在和发送者聊天，追加消息到对话区
     if (currentChat.value && fromId === String(currentChat.value.user.id)) {
@@ -323,11 +326,10 @@ onMounted(() => {
     }
     // 无论是否在当前对话中，都刷新聊天列表以更新最后消息
     loadChatList()
-  })
-})
+}
 
 onUnmounted(() => {
-  wsManager.offMessage('private')
+  wsManager.offMessage('private', handlePrivateMessage)
 })
 </script>
 

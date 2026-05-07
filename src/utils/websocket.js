@@ -17,12 +17,11 @@ class WebSocketManager {
     }
 
     this.userId = userId
-    // 使用当前域名，nginx会代理WebSocket连接
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    //const host = window.location.host // 确保这行存在
-    const host = 'localhost:8080'
+    const host = window.location.host // 确保这行存在
+    //const host = 'localhost:8080'
     const wsUrl = `${protocol}//${host}/api/websocket/${userId}`
-    
+
     try {
       this.ws = new WebSocket(wsUrl)
       this.setupEventHandlers()
@@ -42,21 +41,12 @@ class WebSocketManager {
 
     this.ws.onmessage = (event) => {
       try {
-        console.log('收到WebSocket原始消息:', event.data)
-        
-        // 处理非JSON消息（如"连接成功"）
         if (event.data === '连接成功' || event.data === 'connected') {
-          console.log('WebSocket连接确认消息')
           return
         }
-        
-        // 尝试解析JSON消息
         const data = JSON.parse(event.data)
-        console.log('解析后的消息:', data)
         this.handleMessage(data)
       } catch (error) {
-        // 如果不是JSON，当作普通文本处理
-        console.log('收到文本消息:', event.data)
         if (event.data !== '连接成功') {
           console.error('解析WebSocket消息失败:', error, '原始数据:', event.data)
         }
@@ -66,8 +56,8 @@ class WebSocketManager {
     this.ws.onclose = (event) => {
       console.log('WebSocket连接关闭:', event.code, event.reason)
       this.onDisconnected()
-      
-      // 自动重连
+
+      // 自动重连（处理器不清空，重连后继续有效）
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++
         console.log(`尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
@@ -84,80 +74,40 @@ class WebSocketManager {
     }
   }
 
-  // 等待连接建立
-  async waitForConnection(timeout = 3000) {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected()) {
-        resolve(true)
-        return
-      }
-      
-      const startTime = Date.now()
-      const checkConnection = () => {
-        if (this.isConnected()) {
-          resolve(true)
-        } else if (Date.now() - startTime > timeout) {
-          reject(new Error('WebSocket连接超时'))
-        } else {
-          setTimeout(checkConnection, 100)
-        }
-      }
-      
-      checkConnection()
-    })
-  }
-
-  // 发送消息前确保连接
-  async sendMessage(message) {
-    // 如果未连接，等待连接建立
-    if (!this.isConnected()) {
-      console.log('WebSocket未连接，等待连接建立...')
-      try {
-        await this.waitForConnection()
-      } catch (error) {
-        console.error('等待WebSocket连接失败:', error)
-        return false
-      }
-    }
-    
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const messageStr = typeof message === 'string' ? message : JSON.stringify(message)
-      this.ws.send(messageStr)
-      console.log('发送WebSocket消息:', messageStr)
-      return true
-    } else {
-      console.error('WebSocket未连接，无法发送消息')
-      return false
-    }
-  }
-
-  // 处理收到的消息
+  // 处理收到的消息，按 type 分发给所有匹配的处理器
   handleMessage(data) {
-    console.log('处理WebSocket消息:', data)
-    
-    // 根据消息类型分发给不同的处理器
     const messageType = data.type || 'default'
-    const handler = this.messageHandlers.get(messageType)
-    
-    if (handler) {
-      handler(data)
+
+    const handlers = this.messageHandlers.get(messageType)
+    if (handlers) {
+      handlers.forEach(fn => fn(data))
     }
-    
-    // 同时也触发默认处理器，确保消息不会丢失
-    const defaultHandler = this.messageHandlers.get('default')
-    if (defaultHandler && messageType !== 'default') {
-      defaultHandler(data)
+
+    const defaultHandlers = this.messageHandlers.get('default')
+    if (defaultHandlers && messageType !== 'default') {
+      defaultHandlers.forEach(fn => fn(data))
     }
   }
 
-  // 注册消息处理器（避免重复注册）
+  // 注册消息处理器（同一 type 支持多个）
   onMessage(type, handler) {
-    this.messageHandlers.set(type, handler)
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, new Set())
+    }
+    this.messageHandlers.get(type).add(handler)
   }
 
-  // 移除消息处理器
-  offMessage(type) {
-    this.messageHandlers.delete(type)
+  // 移除指定处理器；不传 handler 则移除该 type 全部
+  offMessage(type, handler) {
+    if (!handler) {
+      this.messageHandlers.delete(type)
+      return
+    }
+    const handlers = this.messageHandlers.get(type)
+    if (handlers) {
+      handlers.delete(handler)
+      if (handlers.size === 0) this.messageHandlers.delete(type)
+    }
   }
 
   // 清除所有消息处理器
@@ -165,17 +115,34 @@ class WebSocketManager {
     this.messageHandlers.clear()
   }
 
-  // 连接成功回调
-  onConnected() {
-    // 可以在这里发送心跳或初始化消息
+  // 等待连接建立
+  async waitForConnection(timeout = 3000) {
+    return new Promise((resolve, reject) => {
+      if (this.isConnected()) { resolve(true); return }
+      const startTime = Date.now()
+      const check = () => {
+        if (this.isConnected()) resolve(true)
+        else if (Date.now() - startTime > timeout) reject(new Error('WebSocket连接超时'))
+        else setTimeout(check, 100)
+      }
+      check()
+    })
   }
 
-  // 连接断开回调
-  onDisconnected() {
-    // 连接断开时的处理
+  // 发送消息
+  async sendMessage(message) {
+    if (!this.isConnected()) {
+      try { await this.waitForConnection() } catch (e) { return false }
+    }
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const str = typeof message === 'string' ? message : JSON.stringify(message)
+      this.ws.send(str)
+      return true
+    }
+    return false
   }
 
-  // 断开连接
+  // 断开连接（不清处理器，重连后仍然有效）
   disconnect() {
     if (this.ws) {
       this.ws.close()
@@ -183,23 +150,31 @@ class WebSocketManager {
       this.userId = null
       this.reconnectAttempts = 0
     }
-    // 清除消息处理器
+  }
+
+  // 退出登录时调用：彻底清除连接和所有处理器
+  reset() {
+    if (this.ws) {
+      this.ws.close()
+      this.ws = null
+    }
+    this.userId = null
+    this.reconnectAttempts = 0
     this.clearMessageHandlers()
   }
 
-  // 获取连接状态
+  // 连接成功回调（可被外部覆盖）
+  onConnected() {}
+
+  // 连接断开回调（可被外部覆盖）
+  onDisconnected() {}
+
+  // 是否已连接
   isConnected() {
     return this.ws && this.ws.readyState === WebSocket.OPEN
   }
 }
 
-// 创建全局WebSocket实例
+// 全局单例
 export const wsManager = new WebSocketManager()
-
-// 默认导出
 export default wsManager
-
-
-
-
-

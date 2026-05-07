@@ -21,6 +21,7 @@ import ChatTest from '../views/ChatTest.vue'
 import ChatDebug from '../views/ChatDebug.vue'
 import MessageSendTest from '../views/MessageSendTest.vue'
 import AdminPage from '../views/AdminPage.vue'
+import InteractionsPage from '../views/InteractionsPage.vue'
 
 const routes = [
   {
@@ -262,6 +263,26 @@ const routes = [
       showTabBar: false,
       requiresAuth: true
     }
+  },
+  {
+    path: '/interactions',
+    name: 'Interactions',
+    component: InteractionsPage,
+    meta: {
+      title: '互动消息',
+      showTabBar: false,
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/prompt',
+    name: 'Prompt',
+    component: () => import('../views/PromptPage.vue'),
+    meta: {
+      title: 'AI提示词设置',
+      showTabBar: false,
+      requiresAuth: true
+    }
   }
 ]
 
@@ -327,13 +348,9 @@ router.beforeEach(async (to, from, next) => {
   const isDevRoute = ['/debug', '/test', '/simple', '/login-debug', '/login-test', '/api-test', '/user-api-test', '/recommend-debug', '/chat-test', '/chat-debug', '/message-send-test'].includes(to.path)
 
   if (!isDevRoute) {
-    if (isPcDevice && !isPcRoute) {
-      const mapped = getMappedRoute(to.path, true)
-      if (mapped) {
-        next({ path: mapped, query: to.query, replace: true })
-        return
-      }
-    } else if (!isPcDevice && isPcRoute) {
+    // PC 设备不再自动跳转到 /pc 路由，统一使用移动端布局（手机外壳模式）
+    // 仅保留：移动设备访问 PC 路由时跳回移动端
+    if (!isPcDevice && isPcRoute) {
       const mapped = getMappedRoute(to.path, false)
       if (mapped) {
         next({ path: mapped, query: to.query, replace: true })

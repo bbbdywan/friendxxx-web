@@ -8,7 +8,7 @@
   background: var(--color-background);
 }
 
-/* 移动端优先设计 */
+/* 移动端：正常全屏 */
 @media (max-width: 768px) {
   #app {
     max-width: 100%;
@@ -16,16 +16,18 @@
   }
 }
 
-/* 桌面端适配 - 仅移动端路由生效 */
+/* 桌面端：body 背景配合手机外壳 */
 @media (min-width: 769px) {
-  #app.mobile-mode {
-    max-width: 414px; /* iPhone 6 Plus 宽度 */
-    margin: 0 auto;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  body {
+    background: linear-gradient(135deg, #f5e6f0 0%, #e8f4fd 50%, #f0faf0 100%);
+    min-height: 100vh;
+  }
+
+  #app {
+    background: transparent;
   }
 }
 
-/* 可爱的链接样式 */
 a {
   color: var(--primary-pink);
   text-decoration: none;
@@ -37,16 +39,6 @@ a {
 a:hover {
   background: rgba(255,182,193,0.1);
   color: var(--accent-rose);
-}
-
-/* 移除旧的响应式布局，已在上面重新定义 */
-
-@media (min-width: 1024px) {
-  #app.mobile-mode {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xl);
-  }
 }
 
 /* 可爱的滚动条 */

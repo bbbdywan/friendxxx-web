@@ -7,7 +7,10 @@
       <div class="online-dot" v-if="user.isOnline"></div>
     </div>
     <div class="card-body">
-      <h4 class="card-name">{{ user.name }}</h4>
+      <div class="card-name-row">
+        <h4 class="card-name">{{ user.name }}</h4>
+        <span v-if="user.matchScore > 0" class="match-badge">{{ user.matchScore }}%匹配</span>
+      </div>
       <div class="card-meta">
         <span v-if="user.age">{{ user.age }}岁</span>
         <span v-if="user.distance">{{ user.distance }}km</span>
@@ -83,11 +86,27 @@ defineEmits(['like', 'follow', 'viewProfile'])
   padding: 14px 16px 8px;
 }
 
+.card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .card-name {
   font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin: 0 0 6px;
+  margin: 0;
+}
+
+.match-badge {
+  font-size: 11px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b9d, #f093fb);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
 .card-meta {

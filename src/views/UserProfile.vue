@@ -166,14 +166,21 @@
       @select="onActionSelect"
       cancel-text="取消"
     />
+
+    <!-- 头像预览 -->
+    <image-preview-modal
+      v-model:show="showAvatarPreview"
+      :images="userInfo.avatar ? [userInfo.avatar] : []"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showDialog, showImagePreview } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { getUserById } from '@/api/user'
+import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -393,8 +400,9 @@ const handleBlock = () => {
 }
 
 // 预览头像
+const showAvatarPreview = ref(false)
 const previewAvatar = () => {
-  showImagePreview([userInfo.value.avatar])
+  if (userInfo.value.avatar) showAvatarPreview.value = true
 }
 
 // 格式化距离显示

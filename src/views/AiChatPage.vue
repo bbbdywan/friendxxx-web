@@ -268,7 +268,7 @@ onMounted(async () => {
 
 <style scoped>
 .ai-chat-page {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #f5f5f5;

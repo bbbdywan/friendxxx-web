@@ -102,8 +102,8 @@ const calculateCardSize = () => {
   const containerHeight = containerRect.height
   
   // 计算最佳卡片尺寸，保持16:9的宽高比
-  const maxWidth = Math.min(containerWidth * 0.85, 380) // 最大380px
-  const maxHeight = Math.min(containerHeight * 0.75, 620) // 最大620px
+  const maxWidth = Math.min(containerWidth * 0.9, 400) // 最大340px
+  const maxHeight = Math.min(containerHeight * 0.8, 600) // 最大580px
   
   // 根据宽高比调整
   const aspectRatio = 9 / 16 // 卡片宽高比
@@ -147,7 +147,7 @@ const swipeHintText = computed(() => {
 const getCardStyle = (index) => {
   const baseZ = 10 - index
   const scale = 1 - index * 0.05
-  const translateY = index * 8 - 60 // 向上偏移60px
+  const translateY = index * 8 - 40 // 向上偏移40px
   const rotate = index * 2
   
   let style = {
@@ -377,7 +377,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 60vh; /* 确保最小高度 */
 }
 
 .stack-card {
@@ -559,10 +558,6 @@ onUnmounted(() => {
 
 /* 移除固定的响应式断点，使用更灵活的适配 */
 @media (max-width: 480px) {
-  .card-stack-container {
-    min-height: 50vh;
-  }
-  
   .card-info {
     bottom: 70px;
     left: 15px;
@@ -596,7 +591,7 @@ onUnmounted(() => {
 /* 横屏适配 */
 @media (orientation: landscape) and (max-height: 500px) {
   .card-stack-container {
-    min-height: 80vh;
+    min-height: unset;
   }
 }
 </style>

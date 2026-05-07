@@ -149,6 +149,7 @@
                   v-for="(img, index) in moment.images.slice(0, 9)"
                   :key="index"
                   class="image-item"
+                  @click="previewImages(moment.images, index)"
                 >
                   <van-image 
                     :src="img" 
@@ -319,6 +320,12 @@
         </div>
       </div>
     </van-popup>
+    <!-- 图片预览 -->
+    <image-preview-modal
+      v-model:show="showPreview"
+      :images="previewImageList"
+      :start-position="previewStartIndex"
+    />
   </div>
 </template>
 
@@ -328,11 +335,13 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import lottie from 'lottie-web'
 import { useUserStore } from '../stores/user.js'
-import { getUserTagsList, getUserById } from '../api/user.js'
+import { getUserTagsList, getUserById, getRecommendUsers } from '../api/user.js'
 import { getstup, likesPost, commentPost, getComments } from '../api/post.js'
+import { getUserProfile } from '../api/user.js'
 import { parseTags } from '../api/types.js'
-import { showToast, showImagePreview } from 'vant'
+import { showToast } from 'vant'
 import EmojiRain from '../components/EmojiRain.vue'
+import ImagePreviewModal from '../components/ImagePreviewModal.vue'
 import { getnews } from '../api/search.js'
 
 // 模块级别缓存 Lottie JSON 数据，避免重复网络请求
@@ -376,7 +385,8 @@ const toggleLike = async (moment) => {
   moment.liked = newLiked
   moment.likes = Math.max(0, (parseInt(moment.likes) || 0) + (newLiked ? 1 : -1))
   try {
-    const res = await likesPost(moment.id, userId, newLiked ? 1 : 0)
+    // 接口：likesId=0 点赞，likesId=1 取消点赞
+    const res = await likesPost(moment.id, userId, newLiked ? 0 : 1)
     if ((res.code === 200 || res.code === 0) && res.data?.likeCount !== undefined) {
       moment.likes = res.data.likeCount
     }
@@ -411,8 +421,11 @@ const submitComment = async () => {
   if (!userId) return showToast('请先登录')
   try {
     commentLoading.value = true
-    const nickname = userStore.userInfo?.username || userStore.userInfo?.nickname || '用户'
-    const avatarUrl = userStore.userInfo?.avatarUrl || ''
+    // 从 /user/profile 获取最新的昵称和头像
+    const profileRes = await getUserProfile()
+    const profile = (profileRes.code === 200 || profileRes.code === 0) ? profileRes.data : null
+    const nickname = profile?.userName || userStore.userInfo?.userName || '用户'
+    const avatarUrl = profile?.avatar || userStore.userInfo?.avatar || ''
     await commentPost(
       currentCommentMoment.value.id,
       userId,
@@ -428,9 +441,10 @@ const submitComment = async () => {
       createTime: new Date().toISOString(),
       avatarUrl
     })
-    currentCommentMoment.value.commentCount = (currentCommentMoment.value.commentCount || 0) + 1
+    currentCommentMoment.value.commentCount = (parseInt(currentCommentMoment.value.commentCount) || 0) + 1
     commentText.value = ''
     showToast('评论成功')
+    showComment.value = false
   } catch (e) {
     showToast('评论失败')
   } finally {
@@ -489,9 +503,6 @@ const recommendUsers = ref([])
 // 动态数据 - 改为从API获取
 const moments = ref([])
 
-// 热门标签
-const hotTags = ref(['温柔', '阳光', '运动', '旅行', '音乐', '美食', '摄影', '读书'])
-
 // 礼物数据
 const gifts = ref([
   { id: 1, name: '玫瑰', icon: '🌹', price: 10 },
@@ -542,38 +553,50 @@ const formatTime = (time) => {
   return `${Math.floor(hours / 24)}天前`
 }
 
-// 获取推荐用户 - 只取前2个
+// 获取推荐用户 - 调用推荐算法，取前2个展示
 const fetchRecommendUsers = async () => {
   try {
     loading.value = true
     recommendUsers.value = []
     console.log('获取首页推荐用户...')
 
-    const response = await getUserTagsList({ pageNum: 1, pageSize: 50 })
-    console.log('首页用户API响应:', response)
-    
-    if (response.code === 200 && response.data?.list) {
-      // 缓存第一页数据到store
-      userStore.cacheUsers(response.data.list)
-      
-      // 只取前2个用户显示在首页
-      const users = response.data.list.slice(0, 2)
-      
-      recommendUsers.value = users.map(user => {
-        const tags = parseTags(user.tags || '[]')
-        return {
+    const currentUserId = userStore.userInfo?.id
+    if (!currentUserId) {
+      // 未登录时降级使用 tagsList
+      const response = await getUserTagsList({ pageNum: 1, pageSize: 50 })
+      if (response.code === 200 && response.data?.list) {
+        userStore.cacheUsers(response.data.list)
+        recommendUsers.value = response.data.list.slice(0, 2).map(user => ({
           id: user.id,
           name: user.username || '用户',
           age: user.age || 0,
-          distance: Math.random() * 5 + 0.5,
           avatar: user.avatarUrl || `https://picsum.photos/200/200?random=${user.id}`,
           isOnline: Math.random() > 0.5,
-          tags: Array.isArray(tags) ? tags.slice(0, 2) : [],
-          gender: user.gender,
-          signature: user.signature || ''
-        }
-      })
-      
+          tags: parseTags(user.tags || '[]').slice(0, 2),
+          matchScore: 0
+        }))
+      }
+      loading.value = false
+      return
+    }
+
+    const response = await getRecommendUsers({
+      userId: currentUserId,
+      limit: 10
+    })
+    console.log('推荐API响应:', response)
+
+    if (response.code === 200 && response.data) {
+      const list = Array.isArray(response.data) ? response.data : []
+      recommendUsers.value = list.slice(0, 2).map(u => ({
+        id: u.id,
+        name: u.userName || '用户',
+        age: u.age || 0,
+        avatar: u.avatar || `https://picsum.photos/200/200?random=${u.id}`,
+        isOnline: Math.random() > 0.5,
+        tags: Array.isArray(u.tags) ? u.tags.slice(0, 2) : parseTags(u.tags || '[]').slice(0, 2),
+        matchScore: u.matchScore || 0
+      }))
       console.log('首页推荐用户:', recommendUsers.value)
     }
   } catch (error) {
@@ -704,15 +727,16 @@ const fetchMoments = async () => {
 }
 
 // 预览图片
-// const previewImages = (images, startIndex = 0) => {
-//   if (images && images.length > 0) {
-//     showImagePreview({
-//       images: images,
-//       startPosition: startIndex,
-//       closeable: true
-//     })
-//   }
-// } // 删除或注释掉这个方法
+const showPreview = ref(false)
+const previewImageList = ref([])
+const previewStartIndex = ref(0)
+
+const previewImages = (images, startIndex = 0) => {
+  if (!images || images.length === 0) return
+  previewImageList.value = [...images]
+  previewStartIndex.value = startIndex
+  showPreview.value = true
+}
 
 // 刷新动态
 const refreshMoments = async () => {
@@ -867,8 +891,8 @@ const handleChat = () => {
 
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-lg);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
 }
@@ -955,9 +979,8 @@ const handleChat = () => {
 
 .user-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--spacing-md);
-  padding: var(--spacing-md);
   width: 100%;
   box-sizing: border-box;
 }
@@ -969,6 +992,9 @@ const handleChat = () => {
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .user-card:hover {
@@ -1205,6 +1231,18 @@ const handleChat = () => {
   cursor: pointer;
   overflow: hidden;
   border-radius: 4px;
+}
+
+.image-item :deep(.van-image) {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.image-item :deep(.van-image__img) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 .moment-image {

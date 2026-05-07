@@ -10,7 +10,7 @@
     </div>
 
     <!-- 筛选标签 -->
-    <div class="filter-tabs">
+    <div class="filter-tabs" :class="{ 'filter-tabs--scrollable': activeTab === 'moments' }">
       <van-tabs v-model:active="activeTab" @change="handleTabChange">
         <van-tab title="推荐" name="recommend">
           <div class="user-grid">
@@ -276,7 +276,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import CardStack from '../components/CardStack.vue'
-import { getUserTagsList } from '../api/user.js'
+import { getUserTagsList, getRecommendUsers } from '../api/user.js'
+import { parseTags } from '../api/types.js'
 import { useUserStore } from '../stores/user.js'
 import { wsManager } from '../utils/websocket.js'
 import { getuserup, deleteMoment as deleteMomentApi } from '../api/post.js'
@@ -468,35 +469,81 @@ const fetchUsersFromApi = async (page = 1, append = false) => {
     if (!append) {
       isLoading.value = true
     }
-    console.log(`获取第${page}页用户数据，每页${pageSize.value}条...`)
-    
-    const response = await getUserTagsList({ pageNum: page, pageSize: pageSize.value })
-    console.log('API响应:', response)
-    
-    if (response.code === 200 && response.data) {
-      const { list, hasNextPage: hasNext, total } = response.data
-      console.log('分页数据:', { list: list.length, hasNext, total })
-      
-      // 如果是第一页，缓存到用户store
-      if (page === 1 && list.length > 0) {
-        console.log('缓存第一页用户数据到store...')
-        userStore.cacheUsers(list)
+    console.log(`获取第${page}页用户数据...`)
+
+    let response
+    if (activeTab.value === 'recommend') {
+      // 推荐tab：使用新的推荐API
+      const currentUserId = userStore.userInfo?.id
+      if (!currentUserId) {
+        console.warn('未登录，无法获取推荐')
+        isLoading.value = false
+        return
       }
-      
-      const transformedUsers = list.map(transformApiUserToCardUser)
-      
-      if (append) {
-        allUsers.value = [...allUsers.value, ...transformedUsers]
-      } else {
-        allUsers.value = transformedUsers
+      response = await getRecommendUsers({
+        userId: currentUserId,
+        limit: pageSize.value,
+        gender: null,
+        ageMin: ageRange.value[0],
+        ageMax: ageRange.value[1]
+      })
+      console.log('推荐API响应:', response)
+
+      if (response.code === 200 && response.data) {
+        const list = Array.isArray(response.data) ? response.data : []
+        const transformedUsers = list.map(u => ({
+          id: u.id,
+          name: u.userName || '用户',
+          age: u.age || 22,
+          distance: (Math.random() * 5 + 0.5).toFixed(1),
+          avatar: (u.avatar || `https://picsum.photos/300/400?random=${u.id}`).trim(),
+          tags: Array.isArray(u.tags) ? u.tags.slice(0, 3) : parseTags(u.tags).slice(0, 3),
+          isOnline: Math.random() > 0.5,
+          bio: u.signature || '这个人很神秘，什么都没有留下...',
+          matchScore: u.matchScore || 0,
+          photos: [
+            (u.avatar || `https://picsum.photos/300/400?random=${u.id}`).trim(),
+            `https://picsum.photos/300/400?random=${u.id}1`,
+            `https://picsum.photos/300/400?random=${u.id}2`
+          ]
+        }))
+
+        if (append) {
+          allUsers.value = [...allUsers.value, ...transformedUsers]
+        } else {
+          allUsers.value = transformedUsers
+        }
+        hasNextPage.value = false
+        totalUsers.value = transformedUsers.length
       }
-      
-      hasNextPage.value = hasNext
-      totalUsers.value = parseInt(total)
-      currentPage.value = page
-      
-      console.log(`已加载${allUsers.value.length}个用户，总共${total}个`)
+    } else {
+      // 附近/在线tab：使用原来的标签列表API
+      response = await getUserTagsList({ pageNum: page, pageSize: pageSize.value })
+      console.log('标签列表API响应:', response)
+
+      if (response.code === 200 && response.data) {
+        const { list, hasNextPage: hasNext, total } = response.data
+        console.log('分页数据:', { list: list?.length, hasNext, total })
+
+        if (page === 1 && list?.length > 0) {
+          userStore.cacheUsers(list)
+        }
+
+        const transformedUsers = (list || []).map(transformApiUserToCardUser)
+
+        if (append) {
+          allUsers.value = [...allUsers.value, ...transformedUsers]
+        } else {
+          allUsers.value = transformedUsers
+        }
+
+        hasNextPage.value = hasNext
+        totalUsers.value = parseInt(total) || 0
+        currentPage.value = page
+      }
     }
+
+    console.log(`已加载${allUsers.value.length}个用户`)
   } catch (error) {
     console.error('获取用户数据失败:', error)
     if (!append) {
@@ -699,9 +746,11 @@ const updateMoment = async () => {
 
 <style scoped>
 .discover-page {
-  min-height: 100vh;
+  height: 100%;
   background: rgb(252, 245, 236);
-  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .top-nav {
@@ -736,12 +785,44 @@ const updateMoment = async () => {
 .filter-tabs {
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 动态 tab 时撑满剩余空间，tab 头固定，内容区滚动 */
+.filter-tabs--scrollable {
+  flex: 1;
+  min-height: 0;
+}
+
+/* van-tabs 内部：tab 头固定，内容区滚动 */
+.filter-tabs--scrollable :deep(.van-tabs) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-tabs--scrollable :deep(.van-tabs__wrap) {
+  flex-shrink: 0;
+}
+
+.filter-tabs--scrollable :deep(.van-tabs__content) {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+}
+
+.filter-tabs--scrollable :deep(.van-tabs__content)::-webkit-scrollbar {
+  display: none;
 }
 
 .card-stack-container {
   position: relative;
-  height: calc(100vh - 200px);
-  padding: var(--spacing-lg);
+  flex: 1;
+  padding: 8px;
+  overflow: hidden;
 }
 
 .action-buttons {
@@ -866,6 +947,7 @@ const updateMoment = async () => {
 .my-moments-content {
   padding: var(--spacing-md);
   background: rgb(252, 245, 236);
+  min-height: 100%;
 }
 
 .empty-state {

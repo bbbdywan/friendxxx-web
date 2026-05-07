@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user.js'
 import { hrlogin } from '@/api/user.js'
@@ -56,8 +56,6 @@ const userStore = useUserStore()
 const loading = ref(false)
 const guestLoading = ref(false)
 const isGuestMode = ref(false)
-const formRef = ref(null)
-
 const loginForm = ref({ userAccount: '', userpassword: '' })
 const guestForm = ref({ nickname: '' })
 
@@ -116,11 +114,19 @@ const confirmGuestLogin = async () => {
 
 onMounted(() => {
   if (userStore.isLoggedIn) router.replace('/pc')
+  document.body.style.overflow = 'hidden'
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>
 
 <style scoped>
-.pc-login { height: 100vh; }
+.pc-login {
+  height: 100vh;
+  overflow: hidden;
+}
 
 .login-bg {
   height: 100%;

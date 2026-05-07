@@ -41,6 +41,7 @@
       <template #title>
         <div class="user-title">
           <span class="user-name">{{ user.name }}</span>
+          <span v-if="user.matchScore > 0" class="match-tag">{{ user.matchScore }}%匹配</span>
           <span v-if="user.verified" class="verified-icon">✨</span>
         </div>
       </template>
@@ -349,6 +350,15 @@ const onImageLoad = () => {
 .user-name {
   font-weight: 600;
   color: var(--van-text-color);
+}
+
+.match-tag {
+  font-size: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b9d, #f093fb);
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
 .verified-icon {

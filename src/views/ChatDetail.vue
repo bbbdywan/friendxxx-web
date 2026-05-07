@@ -209,7 +209,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showImagePreview, showToast, showDialog } from 'vant'
-import { getChatMessages } from '@/api/chat'
+import { getChatMessages, clearUnread } from '@/api/chat'
 import { useUserStore } from '@/stores/user'
 import { wsManager } from '../utils/websocket.js'
 
@@ -406,10 +406,10 @@ const handleWebSocketMessage = (message) => {
   console.log('当前聊天对象ID:', chatUser.value.id)
   console.log('当前用户ID:', userStore.userInfo.id)
 
-  // 尝试多种可能的字段名，兼容不同的消息格式，并确保类型转换
-  const senderId = parseInt(message.senderId || message.fromUserId || message.sender_id)
-  const messageContent = message.content || message.message || message.text || ''
-  const messageTime = message.createTime || message.timestamp || message.time || Date.now()
+  // 服务端实际字段：fromUserId, message, timestamp, id
+  const senderId = parseInt(message.fromUserId || message.senderId || message.sender_id)
+  const messageContent = message.message ?? message.content ?? message.text ?? ''
+  const messageTime = message.timestamp || message.createTime || message.time || Date.now()
   const messageId = message.id || message.messageId || message.timestamp || Date.now()
 
   const currentChatUserId = parseInt(chatUser.value.id)
@@ -448,36 +448,10 @@ const handleWebSocketMessage = (message) => {
       return
     }
 
-    if (shouldDisplay && messageContent) { // 确保消息内容不为空
-      // 检查消息是否已存在，避免重复添加
-      const existingMessage = messages.value.find(msg =>
-        msg.id === messageId ||
-        (msg.content === messageContent &&
-         msg.senderId === senderId &&
-         Math.abs(new Date(msg.timestamp) - new Date(messageTime)) < 1000)
-      )
-
-      if (existingMessage) {
-        console.log('消息已存在，跳过添加:', messageId)
-        return
-      }
-
-      const newMessage = {
-        id: messageId,
-        content: messageContent,
-        type: 'text',
-        sender: sender,
-        timestamp: new Date(messageTime),
-        senderId: senderId,
-        receiverId: currentUserId
-      }
-
-      console.log('添加新消息到界面:', newMessage)
-      messages.value.push(newMessage)
-
-      // 滚动到底部
-      nextTick(() => {
-        scrollToBottom()
+    if (shouldDisplay) {
+      // 收到新消息后重新拉取历史记录，确保数据一致
+      fetchChatHistory().then(() => {
+        nextTick(() => scrollToBottom())
       })
     }
   }
@@ -738,18 +712,25 @@ const handleScroll = () => {
 
 onMounted(async () => {
   console.log('聊天详情页面加载完成')
-  
+
   // 初始化聊天对象
   await initChatUser()
-  
+
   // 初始化聊天功能
   await initChat()
+
+  // 清零该会话未读数
+  const currentUserId = userStore.userInfo?.id
+  const otherUserId = route.params.id
+  if (currentUserId && otherUserId) {
+    clearUnread(currentUserId, otherUserId).catch(() => {})
+  }
 })
 
 onUnmounted(() => {
   console.log('聊天详情页面卸载')
   // 移除私聊消息处理器
-  wsManager.offMessage('private')
+  wsManager.offMessage('private', handleWebSocketMessage)
 })
 </script>
 
@@ -766,7 +747,7 @@ onUnmounted(() => {
 }
 
 .chat-detail {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
@@ -786,7 +767,6 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  padding-bottom: 100px; /* 为输入框留出空间 */
   scroll-behavior: smooth;
 }
 
@@ -1129,10 +1109,7 @@ onUnmounted(() => {
 }
 
 .input-area {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--van-border-color);

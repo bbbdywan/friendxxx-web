@@ -91,6 +91,6 @@ export function getComments(postId) {
  * @returns {Promise} 动态详情响应
  */
 export function getonlyup(id) {
-  return request.get(`/stausup/getonlyup?id=${id}`)
+  return request.get(`/stausup/getcurrentup?id=${id}`)
 }
 

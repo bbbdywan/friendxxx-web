@@ -84,18 +84,18 @@ export function searchUsers(params) {
 }
 
 /**
- * 获取推荐用户列表
+ * 获取推荐用户列表（基于用户画像的多维度推荐）
  * @param {object} params - 推荐参数
- * @param {number} params.pageNum - 页码
- * @param {number} params.pageSize - 每页大小
- * @param {number} params.minAge - 最小年龄
- * @param {number} params.maxAge - 最大年龄
- * @param {number} params.gender - 性别筛选
- * @param {number} params.distance - 距离范围
- * @returns {Promise} 推荐用户响应
+ * @param {number} params.userId - 当前用户ID（必填）
+ * @param {number} params.limit - 返回数量，默认10
+ * @param {number} params.gender - 性别筛选 0-男 1-女（可选）
+ * @param {number} params.ageMin - 年龄下限（可选）
+ * @param {number} params.ageMax - 年龄上限（可选）
+ * @param {string} params.hometown - 家乡筛选（可选）
+ * @returns {Promise} 推荐用户响应，data 为 RecommendUserVO[]，含 matchScore
  */
 export function getRecommendUsers(params) {
-  return request.get('/user/recommend', { params })
+  return request.post('/user/recommend', params)
 }
 
 /**
