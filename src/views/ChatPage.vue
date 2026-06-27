@@ -224,23 +224,18 @@ const fetchChatList = async () => {
           
           // 判断聊天对象ID：如果当前用户是发送者，聊天对象就是接收者；反之亦然
           const chatUserId = currentUserId === senderId ? receiverId : senderId
-          const senderInfo = userStore.getCachedUser(chatUserId)
           
-          console.log(`处理消息: 发送者${senderId}, 接收者${receiverId}, 当前用户${currentUserId}, 聊天对象${chatUserId}:`, senderInfo)
-          
-          // 如果获取不到用户信息，返回null，后续会被过滤掉
-          if (!senderInfo) {
-            console.log(`用户${chatUserId}信息不存在，将从聊天列表中移除`)
-            return null
-          }
+          // 优先使用接口返回的用户信息
+          const chatUserName = item.chatUserName || `用户${chatUserId}`
+          const chatUserAvatar = item.chatUserAvatar || `https://picsum.photos/200/200?random=${chatUserId}`
           
           return {
             id: chatUserId,
             user: {
               id: chatUserId,
-              name: senderInfo?.username || senderInfo?.userName || `用户${chatUserId}`,
-              avatar: senderInfo?.avatarUrl || senderInfo?.avatar || `https://picsum.photos/200/200?random=${chatUserId}`,
-              isOnline: senderInfo?.isOnline || false
+              name: chatUserName,
+              avatar: chatUserAvatar,
+              isOnline: false
             },
             lastMessage: {
               content: item.content || '开始聊天吧',
@@ -251,7 +246,6 @@ const fetchChatList = async () => {
             unreadCount: item.unreadCount || 0
           }
         })
-        .filter(chat => chat !== null) // 过滤掉null值（即获取不到用户信息的聊天）
         .sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp))
       
       console.log('处理后的聊天列表:', chats.value)

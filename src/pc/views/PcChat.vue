@@ -144,16 +144,18 @@ const loadChatList = async () => {
           const senderId = parseInt(item.senderId)
           const receiverId = parseInt(item.receiverId)
           const chatUserId = currentUserId === senderId ? receiverId : senderId
-          // 从用户缓存中获取对方信息
-          const cachedUser = userStore.getCachedUser(chatUserId)
-          if (!cachedUser) return null
+          
+          // 优先使用接口返回的用户信息
+          const chatUserName = item.chatUserName || `用户${chatUserId}`
+          const chatUserAvatar = item.chatUserAvatar || ''
+          
           return {
             id: chatUserId,
             user: {
               id: chatUserId,
-              name: cachedUser.username || cachedUser.userName || `用户${chatUserId}`,
-              avatar: cachedUser.avatarUrl || cachedUser.avatar || '',
-              isOnline: cachedUser.isOnline || false
+              name: chatUserName,
+              avatar: chatUserAvatar,
+              isOnline: false
             },
             lastMessage: {
               content: item.content || '开始聊天吧',
@@ -164,7 +166,6 @@ const loadChatList = async () => {
             unreadCount: item.unreadCount || 0
           }
         })
-        .filter(chat => chat !== null)
         .sort((a, b) => new Date(b.lastMessage.timestamp) - new Date(a.lastMessage.timestamp))
     }
   } catch (error) {
