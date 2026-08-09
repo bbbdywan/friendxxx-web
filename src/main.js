@@ -8,14 +8,12 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useUserStore } from './stores/user.js'
-import { Toast } from 'vant'
 
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(Toast)
 
 // 应用启动后初始化用户状态
 app.mount('#app')

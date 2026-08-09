@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
-import { login as loginApi, getCurrentUser, getUserTagsList } from '../api/user.js'
+import { login as loginApi, logout as logoutApi, getCurrentUser, getUserTagsList } from '../api/user.js'
+import { IS_NATIVE } from '../config.js'
 import wsManager from '../utils/websocket.js'
 
 export const useUserStore = defineStore('user', () => {
   const userInfo = ref(null)
-  const token = ref(null)
+  const token = ref(localStorage.getItem('accessToken'))
   const wsConnected = ref(false)
   
   // 用户缓存Map
@@ -87,8 +88,18 @@ export const useUserStore = defineStore('user', () => {
       console.log('Store: 登录API响应:', response)
       
       if (response.code === 200 || response.code === 0) {
-        userInfo.value = response.data
-        localStorage.setItem('userInfo', JSON.stringify(response.data))
+        const loginData = response.data || {}
+        const currentUser = IS_NATIVE ? loginData.user : loginData
+        const accessToken = IS_NATIVE ? loginData.accessToken : null
+
+        if (!currentUser) {
+          return { success: false, message: '登录响应缺少用户信息' }
+        }
+
+        userInfo.value = currentUser
+        token.value = accessToken || 'session'
+        localStorage.setItem('userInfo', JSON.stringify(currentUser))
+        if (accessToken) localStorage.setItem('accessToken', accessToken)
         
         // 登录成功后立即连接WebSocket
         console.log('登录成功，开始连接WebSocket...')
@@ -100,8 +111,9 @@ export const useUserStore = defineStore('user', () => {
         }
         
         console.log('Store: 登录成功')
-        return { success: true, data: response.data }
+        return { success: true, data: currentUser }
       }
+      return { success: false, message: response.message || '账号或密码错误' }
     } catch (error) {
       console.error('Store: 登录异常:', error)
       return { success: false, message: error.message || '登录失败，请重试' }
@@ -111,13 +123,16 @@ export const useUserStore = defineStore('user', () => {
   // 退出登录 - 移除token处理
   const logout = async () => {
     try {
+      await logoutApi().catch(() => {})
       // 断开WebSocket连接
       disconnectWebSocket()
       
       // 清除本地数据，移除token相关操作
       userInfo.value = null
+      token.value = null
       wsConnected.value = false
       localStorage.removeItem('userInfo')
+      localStorage.removeItem('accessToken')
       
       console.log('Store: 已退出登录')
       return true
@@ -133,9 +148,11 @@ export const useUserStore = defineStore('user', () => {
     if (savedUserInfo) {
       try {
         userInfo.value = JSON.parse(savedUserInfo)
+        token.value = localStorage.getItem('accessToken') || (IS_NATIVE ? null : 'session')
       } catch (error) {
         console.error('解析用户信息失败:', error)
         localStorage.removeItem('userInfo')
+        localStorage.removeItem('accessToken')
       }
     }
   }

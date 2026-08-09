@@ -91,7 +91,7 @@
             
             <!-- 体验用户一键登录按钮 -->
             <van-button 
-              v-if="!isGuestMode"
+              v-if="!isGuestMode && !nativeApp"
               round 
               block 
               type="default" 
@@ -158,11 +158,13 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
 import { hrlogin } from '../api/user.js'
-import { showToast, showSuccessToast, Toast } from 'vant'
+import { showToast } from 'vant'
+import { IS_NATIVE } from '../config.js'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const nativeApp = IS_NATIVE
 
 // 响应式数据
 const loading = ref(false)

@@ -1,3 +1,5 @@
+import { WS_BASE } from '../config.js'
+
 // WebSocket管理器
 class WebSocketManager {
   constructor() {
@@ -17,10 +19,9 @@ class WebSocketManager {
     }
 
     this.userId = userId
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host // 确保这行存在
-    //const host = 'localhost:8080'
-    const wsUrl = `${protocol}//${host}/api/websocket/${userId}`
+    const token = localStorage.getItem('accessToken')
+    const query = token ? `?token=${encodeURIComponent(token)}` : ''
+    const wsUrl = `${WS_BASE}/${userId}${query}`
 
     try {
       this.ws = new WebSocket(wsUrl)

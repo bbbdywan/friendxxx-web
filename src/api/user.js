@@ -1,4 +1,5 @@
 import request from './request.js'
+import { IS_NATIVE } from '../config.js'
 
 /**
  * 用户登录
@@ -8,6 +9,12 @@ import request from './request.js'
  * @returns {Promise} 登录响应
  */
 export function login(params) {
+  if (IS_NATIVE) {
+    return request.post('/app/auth/login', {
+      userAccount: params.userAccount,
+      userPassword: params.userpassword
+    })
+  }
   return request.post('/user/login', params)
 }
 
@@ -27,7 +34,7 @@ export function register(params) {
 export const getCurrentUser = async () => {
   try {
     console.log('API: 获取当前用户信息')
-    const response = await request.get('/user/current')
+    const response = await request.get(IS_NATIVE ? '/app/auth/me' : '/user/current')
     console.log('API: 当前用户响应:', response)
     return response
   } catch (error) {
@@ -184,7 +191,7 @@ export function getLikes(params) {
  * @returns {Promise} 注销响应
  */
 export function logout() {
-  return request.post('/user/logout')
+  return request.post(IS_NATIVE ? '/app/auth/logout' : '/user/logout')
 }
 
 /**

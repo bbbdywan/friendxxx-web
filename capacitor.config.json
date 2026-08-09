@@ -1,5 +1,12 @@
 {
   "appId": "com.baibb.mtheart",
   "appName": "觅心",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
 }
