@@ -18,6 +18,10 @@ export function login(params) {
   return request.post('/user/login', params)
 }
 
+export function appGuestLogin(nickname) {
+  return request.post('/app/auth/guest', { username: nickname })
+}
+
 /**
  * 用户注册
  * @param {object} params - 注册参数

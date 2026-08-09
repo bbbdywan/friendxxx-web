@@ -91,7 +91,7 @@
             
             <!-- 体验用户一键登录按钮 -->
             <van-button 
-              v-if="!isGuestMode && !nativeApp"
+              v-if="!isGuestMode"
               round 
               block 
               type="default" 
@@ -157,7 +157,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
-import { hrlogin } from '../api/user.js'
+import { hrlogin, appGuestLogin } from '../api/user.js'
 import { showToast } from 'vant'
 import { IS_NATIVE } from '../config.js'
 
@@ -350,14 +350,21 @@ const confirmGuestLogin = async () => {
   
   try {
     console.log('开始HR体验登录，昵称:', guestForm.value.nickname)
-    const response = await hrlogin(hrData)
+    const response = nativeApp
+      ? await appGuestLogin(guestForm.value.nickname)
+      : await hrlogin(hrData)
     console.log('HR登录API响应:', response)
 
     if (response.code === 200) {
       // 将HR登录返回的数据存储到用户状态中
-      const userData = response.data
-      userStore.userInfo = userData
+      const userData = nativeApp ? response.data.user : response.data
+      userStore.setUserInfo(userData)
       localStorage.setItem('userInfo', JSON.stringify(userData))
+      if (nativeApp) {
+        userStore.token = response.data.accessToken
+        localStorage.setItem('accessToken', response.data.accessToken)
+        await userStore.connectWebSocket()
+      }
       
       showToast({
         message: `欢迎 ${userData.userName}！`,
