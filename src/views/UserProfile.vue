@@ -181,6 +181,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast, showDialog } from 'vant'
 import { getUserById } from '@/api/user'
 import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -240,7 +241,7 @@ const fetchUserProfile = async () => {
     }
   } catch (error) {
     console.error('获取用户资料失败:', error)
-    showToast('获取用户资料失败')
+    showToast(getApiErrorMessage(error, '获取用户资料失败'))
   } finally {
     loading.value = false
   }

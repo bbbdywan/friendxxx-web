@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { login as loginApi, logout as logoutApi, getCurrentUser, getUserTagsList } from '../api/user.js'
-import { IS_NATIVE } from '../config.js'
 import wsManager from '../utils/websocket.js'
 
 export const useUserStore = defineStore('user', () => {
@@ -89,15 +88,15 @@ export const useUserStore = defineStore('user', () => {
       
       if (response.code === 200 || response.code === 0) {
         const loginData = response.data || {}
-        const currentUser = IS_NATIVE ? loginData.user : loginData
-        const accessToken = IS_NATIVE ? loginData.accessToken : null
+        const currentUser = loginData.user
+        const accessToken = loginData.accessToken
 
         if (!currentUser) {
           return { success: false, message: '登录响应缺少用户信息' }
         }
 
         userInfo.value = currentUser
-        token.value = accessToken || 'session'
+        token.value = accessToken
         localStorage.setItem('userInfo', JSON.stringify(currentUser))
         if (accessToken) localStorage.setItem('accessToken', accessToken)
         
@@ -148,7 +147,7 @@ export const useUserStore = defineStore('user', () => {
     if (savedUserInfo) {
       try {
         userInfo.value = JSON.parse(savedUserInfo)
-        token.value = localStorage.getItem('accessToken') || (IS_NATIVE ? null : 'session')
+        token.value = localStorage.getItem('accessToken')
       } catch (error) {
         console.error('解析用户信息失败:', error)
         localStorage.removeItem('userInfo')
@@ -202,40 +201,51 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = info
     localStorage.setItem('userInfo', JSON.stringify(info))
   }
+
+  const setAppAuth = (info, accessToken) => {
+    if (!info || !accessToken) {
+      throw new Error('登录响应缺少用户信息或访问令牌')
+    }
+    userInfo.value = info
+    token.value = accessToken
+    localStorage.setItem('userInfo', JSON.stringify(info))
+    localStorage.setItem('accessToken', accessToken)
+  }
   
   // 清除用户信息
   const clearUserInfo = () => {
     userInfo.value = null
     token.value = null
     localStorage.removeItem('userInfo')
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
   }
   
-  // 检查登录状态 - 改为调用API验证
+  // 检查登录状态 - 仅 401 才判定失效；403/404/500/网络错误保持登录并抛出
   const checkLoginStatus = async () => {
+    // 无 token：视为未登录
+    if (!token.value && !localStorage.getItem('accessToken')) {
+      return false
+    }
     try {
       const response = await getCurrentUser()
       if (response.code === 200 || response.code === 0) {
         userInfo.value = response.data
+        token.value = localStorage.getItem('accessToken')
+        localStorage.setItem('userInfo', JSON.stringify(response.data))
         return true
       }
-      
-      // 检查是否为用户过期
-      if (response.code === 50000 && response.message === '系统内部错误') {
-        // 用户过期，清除本地数据
-        userInfo.value = null
-        localStorage.removeItem('userInfo')
-        return false
-      }
-      
-      return false
+      // 业务失败（HTTP 200 但 code 非成功）：由拦截器转为 ApiError 抛出，此处不猜登出
+      throw response
     } catch (error) {
-      if (error.response?.status === 401) {
-        // 用户未登录，清除本地数据
+      if (error.status === 401 || error.response?.status === 401 || error.code === 401) {
+        // 真正的认证失效：清理本地状态
         userInfo.value = null
+        token.value = null
         localStorage.removeItem('userInfo')
+        localStorage.removeItem('accessToken')
         return false
       }
+      // 403/404/409/429/500/网络错误：不清理登录状态，向上抛出由调用方展示真实原因
       throw error
     }
   }
@@ -392,6 +402,7 @@ export const useUserStore = defineStore('user', () => {
     initUserInfo,
     getUserInfo,
     setUserInfo,
+    setAppAuth,
     clearUserInfo,
     checkLoginStatus,
     loadUserCache,

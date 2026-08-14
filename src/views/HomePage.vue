@@ -30,17 +30,17 @@
         <div class="feature-icon">🎯</div>
         <span>智能匹配</span>
       </div>
-      <div class="feature-item" @click="startEmojiRain">
-        <div class="feature-icon">🌧️</div>
-        <span>表情雨</span>
+      <div class="feature-item" @click="handleChat">
+        <div class="feature-icon">💬</div>
+        <span>聊天</span>
       </div>
       <div class="feature-item" @click="handleAIAssistant">
         <div class="feature-icon" ref="lottieAiRef" style="width:65px;height:65px;"></div>
         <span>AI助手</span>
       </div>
-      <div class="feature-item" @click="handleChat">
-        <div class="feature-icon">💬</div>
-        <span>聊天</span>
+      <div v-if="isAdmin" class="feature-item" @click="handleAiAdmin">
+        <div class="feature-icon">🎭</div>
+        <span>人设管理</span>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
         <h2>推荐用户</h2>
         <div class="header-actions">
           <span @click="fetchRecommendUsers" class="refresh-btn">🔄</span>
-          <span @click="$router.push('/chat-test')" class="test-btn">💬</span>
+          <span @click="$router.push('/chat')" class="test-btn">💬</span>
           <span @click="$router.push('/message-send-test')" class="test-btn">📤</span>
           <span @click="$router.push('/discover')">更多 ></span>
         </div>
@@ -212,15 +212,6 @@
       </div>
     </div>
 
-    <!-- 表情雨组件 -->
-    <EmojiRain 
-      ref="emojiRain" 
-      :show-controls="false" 
-      :auto-start="false"
-      trigger="manual"
-      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999;"
-    />
-
     <!-- 搜索弹窗 -->
     <van-popup v-model:show="showSearch" position="bottom" :style="{ height: '90%', borderRadius: '16px 16px 0 0' }" @open="fetchNews">
       <div class="search-page">
@@ -331,7 +322,7 @@
 
 <script setup>
 defineOptions({ name: 'HomePage' })
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import lottie from 'lottie-web'
 import { useUserStore } from '../stores/user.js'
@@ -340,9 +331,9 @@ import { getstup, likesPost, commentPost, getComments } from '../api/post.js'
 import { getUserProfile } from '../api/user.js'
 import { parseTags } from '../api/types.js'
 import { showToast } from 'vant'
-import EmojiRain from '../components/EmojiRain.vue'
 import ImagePreviewModal from '../components/ImagePreviewModal.vue'
 import { getnews } from '../api/search.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 // 模块级别缓存 Lottie JSON 数据，避免重复网络请求
 let cachedAiData = null
@@ -361,10 +352,12 @@ const preloadLottieData = async () => {
 const userStore = useUserStore()
 const $router = useRouter()
 
+// 管理员判定：userRole === 1
+const isAdmin = computed(() => Number(userStore.userInfo?.userRole) === 1)
+
 const showSearch = ref(false)
 const showGiftModal = ref(false)
 const searchKeyword = ref('')
-const emojiRain = ref(null)
 const lottieAiRef = ref(null)
 const lottieLogoRef = ref(null)
 const loading = ref(false)
@@ -393,7 +386,7 @@ const toggleLike = async (moment) => {
   } catch (e) {
     moment.liked = !newLiked
     moment.likes = Math.max(0, (parseInt(moment.likes) || 0) + (newLiked ? -1 : 1))
-    showToast('操作失败')
+    showToast(getApiErrorMessage(e, '操作失败'))
   }
 }
 
@@ -446,7 +439,7 @@ const submitComment = async () => {
     showToast('评论成功')
     showComment.value = false
   } catch (e) {
-    showToast('评论失败')
+    showToast(getApiErrorMessage(e, '评论失败'))
   } finally {
     commentLoading.value = false
   }
@@ -461,8 +454,8 @@ const fetchNews = async () => {
       const list = parsed?.data || parsed
       newsList.value = Array.isArray(list) ? list : []
     }
-  } catch (e) {
-    console.error('获取热门资讯失败:', e)
+  } catch (error) {
+    console.error('获取热门资讯失败:', error)
   } finally {
     newsLoading.value = false
   }
@@ -471,6 +464,7 @@ const fetchNews = async () => {
 const openNewsScheme = (scheme) => {
   if (scheme) window.open(scheme, '_blank')
 }
+
 
 const formatHeat = (num) => {
   if (!num) return ''
@@ -512,16 +506,6 @@ const gifts = ref([
 ])
 
 // 方法
-const startEmojiRain = () => {
-  console.log('点击表情雨')
-  if (emojiRain.value) {
-    console.log('启动表情雨')
-    emojiRain.value.start()
-  } else {
-    console.log('表情雨组件未找到')
-  }
-}
-
 const handleSearch = () => {
   console.log('搜索:', searchKeyword.value)
   // 这里可以添加搜索逻辑
@@ -642,10 +626,7 @@ const viewUserProfile = async (userId) => {
     }
   } catch (error) {
     console.error('获取用户详情异常:', error)
-    showToast({
-      type: 'fail',
-      message: '网络错误，请重试'
-    })
+    showToast(getApiErrorMessage(error, '网络错误，请重试'))
   }
 }
 
@@ -786,6 +767,12 @@ const handleSmartMatch = () => {
 const handleAIAssistant = () => {
   console.log('AI助手')
   $router.push('/ai-chat')
+}
+
+// AI人设管理（管理员）
+const handleAiAdmin = () => {
+  console.log('AI人设管理')
+  $router.push('/ai-admin')
 }
 
 // 聊天

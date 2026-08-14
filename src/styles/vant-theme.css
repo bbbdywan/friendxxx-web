@@ -45,6 +45,30 @@
   --van-duration-fast: 0.2s;
   --van-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --van-ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+
+  /* 层级 token（全站统一，禁止页面随意写 9999/10000） */
+  --z-overlay: 100;
+  --z-popup: 200;
+  --z-dialog: 300;
+  --z-toast: 400;
+  --z-image-preview: 500;
+}
+
+/* 全局 Toast 层级：必须高于所有 Popup/Dialog，避免被遮挡 */
+.van-toast {
+  z-index: var(--z-toast, 400) !important;
+}
+.van-popup {
+  z-index: var(--z-popup, 200);
+}
+.van-overlay {
+  z-index: var(--z-overlay, 100);
+}
+.van-dialog {
+  z-index: var(--z-dialog, 300);
+}
+.van-image-preview {
+  z-index: var(--z-image-preview, 500);
 }
 
 /* 深色主题 */

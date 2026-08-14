@@ -1,95 +1,79 @@
 import request from './request.js'
+import { streamSse, aiUrl } from './sse.js'
 
-/** 
- * simpleChat
- * @param {string} query 
- * @param {string} userId - 用户ID
- * @returns {Promise}
+/**
+ * 统一 AI 聊天 API 层（新接口 /ai/*）。
+ * 替换旧的 /helloworld/* 调用。
  */
-export function simpleChat(query, userId) {
-  return request.get(`/helloworld/simple/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`)
+
+/** 获取可用角色列表 */
+export function listCharacters() {
+  return request.get('/ai/characters')
 }
 
-/** 
- * streamChat - 流式聊天
- * @param {string} query 
- * @param {string} userId - 用户ID
- * @param {Function} onChunk - 接收每个数据块的回调函数
- * @returns {Promise}
- */
-export async function streamChat(query, userId, onChunk) {
-  // 使用相对路径，nginx会代理到后端
- //const url = `/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}`
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-  const currentUserId = userInfo.id || ''
-  //const url = `http://localhost:8080/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}&userId=${currentUserId}`
-  const url = `/api/helloworld/stream/chat?query=${encodeURIComponent(query)}&chat-id=${userId}&userId=${currentUserId}`
-  try {
-    console.log('开始流式请求:', url)
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'text/plain',
-        'Cache-Control': 'no-cache'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-
-    while (true) {
-      const { done, value } = await reader.read()
-      
-      if (done) {
-        console.log('流式读取完成')
-        break
-      }
-      
-      const chunk = decoder.decode(value, { stream: true })
-      console.log('收到数据块:', chunk, '长度:', chunk.length)
-      
-      if (chunk && onChunk) {
-        onChunk(chunk)
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 50))
-    }
-    
-    return { success: true }
-  } catch (error) {
-    console.error('流式请求失败:', error)
-    throw error
-  }
+/** 创建会话 */
+export function createConversation(characterId) {
+  return request.post('/ai/conversations', { characterId })
 }
 
-/** 
- * 获取AI聊天记录
- * @param {number} userId - 用户ID
- * @returns {Promise}
- */
-export function getAiMessageList(userId) {
-  return request.get(`/helloworld/getmessagelist?conversationId=${userId}`)
+/** 会话列表 */
+export function listConversations(page = 1, size = 20) {
+  return request.get(`/ai/conversations?page=${page}&size=${size}`)
 }
 
-/** 
- * 删除AI聊天记录
- * @param {string} conversationId - 对话ID（用户ID）
- * @returns {Promise}
- */
-export function deleteAiMessages(conversationId) {
-  return request.get(`/helloworld/deletemessage?conversationId=${conversationId}`)
+/** 会话详情（含角色名称/头像） */
+export function getConversation(conversationId) {
+  return request.get(`/ai/conversations/${conversationId}`)
 }
 
+/** 游标分页查询历史消息（服务端返回 {items,nextCursor,hasMore}） */
+export function listMessages(conversationId, cursor = '', limit = 30) {
+  const q = cursor ? `?cursor=${encodeURIComponent(cursor)}&limit=${limit}` : `?limit=${limit}`
+  return request.get(`/ai/conversations/${conversationId}/messages${q}`)
+}
 
+/**
+ * SSE 流式发送消息。
+ * @param {object} params
+ * @param {string} params.conversationId
+ * @param {string} params.content
+ * @param {string} params.clientMessageId
+ * @param {string} params.token
+ * @param {AbortSignal} [params.signal]
+ * @param {Function} [params.onStart]
+ * @param {Function} [params.onDelta]
+ * @param {Function} [params.onUsage]
+ * @param {Function} [params.onDone]
+ * @param {Function} [params.onError]
+ * @param {Function} [params.onMessageStart]
+ * @param {Function} [params.onMessageDelta]
+ * @param {Function} [params.onMessageEnd]
+ */
+export function sendMessageSse(params) {
+  const { conversationId, content, clientMessageId, token, signal,
+    onStart, onDelta, onUsage, onDone, onError,
+    onMessageStart, onMessageDelta, onMessageEnd } = params
+  return streamSse({
+    url: aiUrl(`/ai/conversations/${conversationId}/messages`),
+    body: { content, clientMessageId },
+    token,
+    signal,
+    onStart, onDelta, onUsage, onDone, onError,
+    onMessageStart, onMessageDelta, onMessageEnd
+  })
+}
 
+/** 查看某角色记忆 */
+export function listMemories(characterId) {
+  return request.get(`/ai/characters/${characterId}/memories`)
+}
 
+/** 删除单条记忆 */
+export function deleteMemory(memoryId) {
+  return request.delete(`/ai/memories/${memoryId}`)
+}
 
-
-
-
+/** 更正记忆 */
+export function updateMemory(memoryId, content) {
+  return request.patch(`/ai/memories/${memoryId}`, { content })
+}

@@ -1,12 +1,5 @@
 <template>
-  <div id="app" :class="{ 'mobile-mode': !isPcRoute }">
-    <!-- PC 端路由：直接渲染，不显示移动端组件 -->
-    <template v-if="isPcRoute">
-      <router-view />
-    </template>
-
-    <!-- 移动端路由 -->
-    <template v-else>
+  <div id="app" class="mobile-mode">
       <!-- PC 访问时：手机外壳包裹 -->
       <div v-if="isDesktop" class="phone-shell-wrapper">
         <div class="phone-shell">
@@ -45,23 +38,17 @@
         <TabBar v-if="showTabBar" />
         <WebSocketStatus />
       </template>
-    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import TabBar from './components/TabBar.vue'
 import WebSocketStatus from './components/WebSocketStatus.vue'
 
 const route = useRoute()
-const router = useRouter()
-
 const PC_BREAKPOINT = 768
-
-// 判断是否为 PC 端路由
-const isPcRoute = computed(() => route.path.startsWith('/pc'))
 
 // 是否为登录页（禁止手机内部滚动）
 const isLoginPage = computed(() => route.path === '/login')
@@ -86,7 +73,6 @@ watch(() => route.path, (newPath) => {
 
 // 根据路由元信息决定是否显示底部导航栏
 const showTabBar = computed(() => {
-  if (isPcRoute.value) return false
   if (route.path === '/ai-chat' || route.path === '/search') {
     return false
   }
@@ -99,10 +85,6 @@ const handleResize = () => {
   clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
     isDesktop.value = window.innerWidth > PC_BREAKPOINT
-    // 移动设备访问 PC 路由时跳回移动端
-    if (!isDesktop.value && route.path.startsWith('/pc')) {
-      router.replace({ path: route.path, query: route.query })
-    }
   }, 300)
 }
 
@@ -124,9 +106,15 @@ onUnmounted(() => {
 
 /* 手机端：#app 作为 flex 列，让页面内容撑满 */
 #app.mobile-mode {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+html.native-app #app.mobile-mode {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* 手机端页面容器：撑满剩余空间，页面 height:100% 有效 */

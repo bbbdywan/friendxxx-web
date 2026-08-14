@@ -128,6 +128,7 @@ import {
   setActivePrompt,
   deletePrompt
 } from '../api/prompt.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 
@@ -154,7 +155,7 @@ const fetchData = async () => {
     if (listRes.code === 200) promptList.value = listRes.data || []
     if (activeRes.code === 200) activePrompt.value = activeRes.data
   } catch (e) {
-    showToast('加载失败')
+    showToast(getApiErrorMessage(e, '加载失败'))
   } finally {
     loading.value = false
   }
@@ -204,7 +205,7 @@ const handleSave = async () => {
       showToast(res.message || '保存失败')
     }
   } catch (e) {
-    showToast('保存失败')
+    showToast(getApiErrorMessage(e, '保存失败'))
   } finally {
     saving.value = false
   }
@@ -220,7 +221,7 @@ const handleSetActive = async (id) => {
       showToast(res.message || '设置失败')
     }
   } catch (e) {
-    showToast('设置失败')
+    showToast(getApiErrorMessage(e, '设置失败'))
   }
 }
 

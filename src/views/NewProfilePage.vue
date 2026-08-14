@@ -309,6 +309,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
 import { getCurrentUser, updateUser, uploadAvatar, getUserProfile } from '../api/user.js'
 import { showToast, showLoadingToast, showSuccessToast, closeToast, showConfirmDialog } from 'vant'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -521,7 +522,7 @@ const fetchUserProfile = async () => {
     }
   } catch (error) {
     console.error('获取用户信息失败:', error)
-    showToast('获取用户信息失败')
+    showToast(getApiErrorMessage(error, '获取用户信息失败'))
   } finally {
     loading.value = false
   }
@@ -602,10 +603,7 @@ const saveProfile = async () => {
     }
   } catch (error) {
     console.error('保存失败:', error)
-    showToast({
-      type: 'fail',
-      message: error.message || '保存失败，请重试'
-    })
+    showToast(getApiErrorMessage(error, '保存失败，请重试'))
   } finally {
     closeToast()
   }
@@ -645,10 +643,7 @@ const changeBackground = async () => {
         }
       } catch (error) {
         console.error('上传背景图失败:', error)
-        showToast({
-          type: 'fail',
-          message: error.message || '上传失败，请重试'
-        })
+        showToast(getApiErrorMessage(error, '上传失败，请重试'))
       } finally {
         closeToast()
       }
@@ -687,10 +682,7 @@ const changeAvatar = async () => {
         }
       } catch (error) {
         console.error('上传头像失败:', error)
-        showToast({
-          type: 'fail',
-          message: error.message || '上传失败，请重试'
-        })
+        showToast(getApiErrorMessage(error, '上传失败，请重试'))
       } finally {
         closeToast()
       }
@@ -727,10 +719,7 @@ const logout = async () => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('退出登录失败:', error)
-      showToast({
-        type: 'fail',
-        message: '退出登录失败'
-      })
+      showToast(getApiErrorMessage(error, '退出登录失败'))
     }
   } finally {
     closeToast()

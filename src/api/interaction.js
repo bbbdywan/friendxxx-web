@@ -3,24 +3,6 @@ import request from './request.js'
 /**
  * 点赞 / 取消点赞
  */
-export function toggleLike(postid, userId, likesId) {
-  return request.post('/stausup/likes', { postid, userId, likesId })
-}
-
-/**
- * 发表评论
- */
-export function postComment(data) {
-  return request.post('/stausup/comment', data)
-}
-
-/**
- * 获取评论列表
- */
-export function getComments(postId) {
-  return request.get(`/stausup/comments/${postId}`)
-}
-
 /**
  * 获取互动消息列表（分页）
  * @param {number} userId

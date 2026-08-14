@@ -157,14 +157,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
-import { hrlogin, appGuestLogin } from '../api/user.js'
+import { appGuestLogin } from '../api/user.js'
 import { showToast } from 'vant'
-import { IS_NATIVE } from '../config.js'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const nativeApp = IS_NATIVE
 
 // 响应式数据
 const loading = ref(false)
@@ -340,31 +338,13 @@ const confirmGuestLogin = async () => {
 
   guestLoading.value = true
   
-  const hrData = {
-    username: guestForm.value.nickname,
-    userPassword: null,
-    userAccount: null,
-    avatarUrl: null,
-    tags: null
-  }
-  
   try {
-    console.log('开始HR体验登录，昵称:', guestForm.value.nickname)
-    const response = nativeApp
-      ? await appGuestLogin(guestForm.value.nickname)
-      : await hrlogin(hrData)
-    console.log('HR登录API响应:', response)
+    const response = await appGuestLogin(guestForm.value.nickname)
 
     if (response.code === 200) {
-      // 将HR登录返回的数据存储到用户状态中
-      const userData = nativeApp ? response.data.user : response.data
-      userStore.setUserInfo(userData)
-      localStorage.setItem('userInfo', JSON.stringify(userData))
-      if (nativeApp) {
-        userStore.token = response.data.accessToken
-        localStorage.setItem('accessToken', response.data.accessToken)
-        await userStore.connectWebSocket()
-      }
+      const userData = response.data.user
+      userStore.setAppAuth(userData, response.data.accessToken)
+      await userStore.connectWebSocket()
       
       showToast({
         message: `欢迎 ${userData.userName}！`,

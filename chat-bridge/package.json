@@ -1,9 +1,0 @@
-{
-  "name": "chat-bridge",
-  "version": "1.0.0",
-  "description": "Chat bridge - relay Claude CLI to mobile browser via cloud server",
-  "dependencies": {
-    "dotenv": "^17.4.2",
-    "ws": "^8.16.0"
-  }
-}

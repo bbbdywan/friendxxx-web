@@ -106,6 +106,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showLoadingToast, showSuccessToast, closeToast } from 'vant'
 import { updateUser } from '../api/user.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -257,10 +258,7 @@ const saveTags = async () => {
     }
   } catch (error) {
     console.error('保存标签失败:', error)
-    showToast({
-      type: 'fail',
-      message: error.message || '保存失败，请重试'
-    })
+    showToast(getApiErrorMessage(error, '保存失败，请重试'))
   } finally {
     closeToast()
   }

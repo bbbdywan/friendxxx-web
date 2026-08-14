@@ -91,8 +91,6 @@
       </van-tab>
     </van-tabs>
 
-
-    <!-- 热门话题 -->
     <div class="trending-section" v-if="!hasSearched">
       <div class="trending-header">
         <div class="header-left">
@@ -102,51 +100,35 @@
         <span class="trending-subtitle">实时热搜榜</span>
       </div>
 
-      <van-loading v-if="trendingLoading" type="spinner" size="24" class="trending-loading">
-        加载中...
-      </van-loading>
+      <van-loading v-if="trendingLoading" type="spinner" size="24" class="trending-loading">加载中...</van-loading>
 
-      <div v-else-if="trendingTopics.length > 0" class="trending-list">
-        <div
-          v-for="(topic, index) in trendingTopics.slice(0, 10)"
-          :key="index"
-          class="trending-item"
-          @click="handleTrendingClick(topic)"
-        >
-          <div class="trending-rank" :class="{ 'top-three': index < 3 }">
-            {{ index + 1 }}
-          </div>
+      <div v-else class="trending-list">
+        <div v-for="(topic, index) in trendingTopics.slice(0, 10)" :key="index" class="trending-item" @click="handleTrendingClick(topic)">
+          <div class="trending-rank" :class="{ 'top-three': index < 3 }">{{ index + 1 }}</div>
           <div class="trending-content">
             <h4 class="trending-title">{{ topic.title }}</h4>
             <div class="trending-meta" v-if="topic.desc_extr">
               <span class="heat-value">{{ formatHeatValue(topic.desc_extr) }}</span>
             </div>
           </div>
-          <div class="trending-badge" v-if="topic.icon">
-            <van-image
-              :src="topic.icon"
-              width="20"
-              height="20"
-              fit="cover"
-              round
-            />
-          </div>
+          <van-image v-if="topic.icon" :src="topic.icon" width="20" height="20" fit="cover" round />
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup>
 defineOptions({ name: 'SearchPage' })
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { getnews } from '../api/search.js'
 import { selectAlluser } from '../api/user.js'
+import { getnews } from '../api/search.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
-const route = useRoute()
 
 const searchKeyword = ref('')
 const activeTab = ref('user')
@@ -158,11 +140,11 @@ const userSearchLoading = ref(false)
 const userCurrentPage = ref(1)
 const userTotalPages = ref(0)
 const userHasMore = ref(false)
-
-
-
 const trendingTopics = ref([])
 const trendingLoading = ref(false)
+
+
+
 
 
 // 获取性别文本
@@ -225,7 +207,7 @@ const searchUsersByApi = async (loadMore = false) => {
     }
   } catch (error) {
     console.error('用户搜索失败:', error)
-    showToast('搜索失败，请重试')
+    showToast(getApiErrorMessage(error, '搜索失败，请重试'))
     if (!loadMore) userSearchResults.value = []
   } finally {
     userSearchLoading.value = false
@@ -259,56 +241,31 @@ const startChat = (user) => {
   // 跳转到聊天页面
 }
 
-
-// 获取热点话题
 const fetchTrendingTopics = async () => {
   try {
     trendingLoading.value = true
     const response = await getnews()
-
-    console.log('热点话题API响应:', response)
-
-    if (response.code === 200 && response.data) {
-      // 解析嵌套的JSON字符串
-      const parsedData = JSON.parse(response.data)
-      if (parsedData.code === 200 && Array.isArray(parsedData.data)) {
-        trendingTopics.value = parsedData.data
-        console.log('热点话题数据:', trendingTopics.value)
-      }
-    }
+    const parsed = typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+    trendingTopics.value = Array.isArray(parsed?.data) ? parsed.data : []
   } catch (error) {
     console.error('获取热点话题失败:', error)
-    // 静默失败，不显示错误提示
   } finally {
     trendingLoading.value = false
   }
 }
 
-// 点击热点话题
 const handleTrendingClick = (topic) => {
-  if (topic.scheme) {
-    // 在新窗口打开链接
-    window.open(topic.scheme, '_blank')
-  }
+  if (topic.scheme) window.open(topic.scheme, '_blank')
 }
 
-// 格式化热度值
-const formatHeatValue = (value) => {
-  if (!value) return '0热度'
-
-  if (value >= 10000) {
-    return (value / 10000).toFixed(1) + '万热度'
-  }
-  return value.toString() + '热度'
+const formatHeatValue = value => {
+  if (!value) return ''
+  return value >= 10000 ? `${(value / 10000).toFixed(1)}万热度` : `${value}热度`
 }
 
-onMounted(() => {
-  console.log('当前路由路径:', route.path)
-  console.log('搜索页面加载完成')
+onMounted(fetchTrendingTopics)
 
-  // 获取热点话题
-  fetchTrendingTopics()
-})
+
 </script>
 
 <style scoped>

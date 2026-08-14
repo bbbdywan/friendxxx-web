@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 
-export const IS_NATIVE = Capacitor.isNativePlatform()
+export const IS_NATIVE = import.meta.env.VITE_NATIVE_APP === 'true' || Capacitor.isNativePlatform()
 const NATIVE_API = 'http://111.228.10.5/api'
 const NATIVE_WS = 'ws://111.228.10.5/api/websocket'
 const DEV_API = '/api'

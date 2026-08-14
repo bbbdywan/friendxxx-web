@@ -212,6 +212,7 @@ import { showImagePreview, showToast, showDialog } from 'vant'
 import { getChatMessages, clearUnread } from '@/api/chat'
 import { useUserStore } from '@/stores/user'
 import { wsManager } from '../utils/websocket.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -366,10 +367,7 @@ const fetchChatHistory = async () => {
     }
   } catch (error) {
     console.error('获取聊天历史记录失败:', error)
-    showToast({
-      type: 'fail',
-      message: '获取聊天记录失败'
-    })
+    showToast(getApiErrorMessage(error, '获取聊天记录失败'))
   } finally {
     loading.value = false
   }

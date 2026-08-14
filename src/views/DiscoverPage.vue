@@ -282,6 +282,7 @@ import { useUserStore } from '../stores/user.js'
 import { wsManager } from '../utils/websocket.js'
 import { getuserup, deleteMoment as deleteMomentApi } from '../api/post.js'
 import { showConfirmDialog } from 'vant'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -642,7 +643,7 @@ const loadUserMoments = async () => {
     }
   } catch (error) {
     console.error('获取用户动态失败:', error)
-    showToast('获取动态失败')
+    showToast(getApiErrorMessage(error, '获取动态失败'))
   } finally {
     momentsLoading.value = false
   }
@@ -670,7 +671,7 @@ const deleteMoment = async (momentId) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除动态失败:', error)
-      showToast('删除失败')
+      showToast(getApiErrorMessage(error, '删除失败'))
     }
   }
 }
@@ -739,7 +740,7 @@ const updateMoment = async () => {
       showEditModal.value = false
     }
   } catch (error) {
-    showToast('更新失败')
+    showToast(getApiErrorMessage(error, '更新失败'))
   }
 }
 </script>

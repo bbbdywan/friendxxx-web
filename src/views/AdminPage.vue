@@ -121,11 +121,11 @@
                   <p class="user-email">{{ user.email || '未设置邮箱' }}</p>
                 </div>
                 <van-tag
-                  :type="user.userRole === 3 ? 'primary' : 'default'"
+                  :type="user.userRole === 1 ? 'primary' : 'default'"
                   round
                   class="role-tag"
                 >
-                  {{ user.userRole === 3 ? 'admin' : 'user' }}
+                  {{ user.userRole === 1 ? 'admin' : 'user' }}
                 </van-tag>
               </div>
 
@@ -453,6 +453,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { selectAlluser, deleteuser } from '@/api/user'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 
@@ -537,7 +538,7 @@ const loadUsers = async () => {
     }
   } catch (error) {
     console.error('加载用户列表失败:', error)
-    showToast('加载用户列表失败，请稍后重试')
+    showToast(getApiErrorMessage(error, '加载用户列表失败，请稍后重试'))
   } finally {
     loadingUsers.value = false
   }
@@ -694,7 +695,7 @@ const deleteUser = async (user) => {
     console.error('停用用户异常:', error)
     // 用户取消或接口调用失败
     if (error && error.message && error.message !== 'cancel') {
-      showToast('停用失败，请稍后重试')
+      showToast(getApiErrorMessage(error, '停用失败，请稍后重试'))
     }
   }
 }

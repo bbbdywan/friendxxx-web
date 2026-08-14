@@ -351,6 +351,7 @@ import { showImagePreview, showToast, showConfirmDialog, showLoadingToast, close
 import { uploadImage } from '../api/upload'
 import { publishPost, updatesocia, getonlyup } from '../api/post'
 import { useUserStore } from '../stores/user'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -626,7 +627,7 @@ const uploadFiles = async (files) => {
     
   } catch (error) {
     console.error('批量上传失败:', error)
-    showToast('上传失败，请重试')
+    showToast(getApiErrorMessage(error, '上传失败，请重试'))
   } finally {
     closeToast()
     isUploading.value = false
@@ -778,7 +779,7 @@ const handlePublish = async () => {
     
   } catch (error) {
     console.error('操作失败:', error)
-    showToast(error.message || '操作失败，请重试')
+    showToast(getApiErrorMessage(error, '操作失败，请重试'))
   } finally {
     isPublishing.value = false
   }
@@ -838,7 +839,7 @@ const fetchMomentDetail = async (momentId) => {
     }
   } catch (error) {
     console.error('获取动态详情失败:', error)
-    showToast(error.message || '获取动态详情失败')
+    showToast(getApiErrorMessage(error, '获取动态详情失败'))
     // 获取失败时返回上一页
     router.go(-1)
   } finally {

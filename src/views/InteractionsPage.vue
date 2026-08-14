@@ -70,6 +70,7 @@ import { showToast } from 'vant'
 import { useUserStore } from '@/stores/user'
 import { getInformList, getUnreadCount, readAll, readOne } from '@/api/interaction'
 import wsManager from '@/utils/websocket'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -104,6 +105,8 @@ const loadInit = async () => {
     if (data.length < PAGE_SIZE) finished.value = true
   } catch (e) {
     console.error('获取互动消息失败:', e)
+    showToast(getApiErrorMessage(e, '加载互动消息失败'))
+    finished.value = true
   } finally {
     loading.value = false
   }
@@ -132,6 +135,7 @@ const loadMore = async () => {
     if (data.length < PAGE_SIZE) finished.value = true
   } catch (e) {
     page.value--
+    showToast(getApiErrorMessage(e, '加载更多失败'))
   } finally {
     loadingMore.value = false
   }
@@ -155,7 +159,7 @@ const markAllRead = async () => {
     syncUnreadToStorage()
     showToast('已全部标记为已读')
   } catch (e) {
-    showToast('操作失败')
+    showToast(getApiErrorMessage(e, '操作失败'))
   }
 }
 

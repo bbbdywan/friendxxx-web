@@ -133,6 +133,7 @@ import { showToast, showConfirmDialog, showImagePreview } from 'vant'
 import { useUserStore } from '../stores/user.js'
 import { getuserup, deleteMoment as deleteMomentApi, likesPost, commentPost, getComments } from '../api/post.js'
 import { getUserProfile } from '../api/user.js'
+import { getApiErrorMessage } from '../utils/error.js'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -170,7 +171,7 @@ const fetchUserMoments = async () => {
     }
   } catch (error) {
     console.error('获取用户动态失败:', error)
-    showToast('获取动态失败')
+    showToast(getApiErrorMessage(error, '获取动态失败'))
   } finally {
     loading.value = false
   }
@@ -189,7 +190,7 @@ const toggleLike = async (moment) => {
   } catch (e) {
     moment.liked = !newLiked
     moment.likeCount = Math.max(0, (moment.likeCount || 0) + (newLiked ? -1 : 1))
-    showToast('操作失败')
+    showToast(getApiErrorMessage(e, '操作失败'))
   }
 }
 
@@ -244,7 +245,7 @@ const submitComment = async () => {
     showToast('评论成功')
     showComment.value = false
   } catch (e) {
-    showToast('评论失败')
+    showToast(getApiErrorMessage(e, '评论失败'))
   } finally {
     commentLoading.value = false
   }
@@ -271,7 +272,7 @@ const deleteMoment = async (momentId) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除动态失败:', error)
-      showToast('删除失败')
+      showToast(getApiErrorMessage(error, '删除失败'))
     }
   }
 }

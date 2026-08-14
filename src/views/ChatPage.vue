@@ -135,10 +135,11 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showDialog } from 'vant'
 import { useUserStore } from '@/stores/user'
-import { getChatList, getMessageList, deleteChatMessage } from '@/api/chat'
+import { getMessageList, deleteChatMessage } from '@/api/chat'
 import { getUnreadCount, getInformList } from '@/api/interaction'
 import wsManager from '@/utils/websocket'
 import EmptyState from '../components/EmptyState.vue'
+import { getApiErrorMessage } from '../utils/error.js'
 
 // 互动消息角标 & 预览
 const interactionUnread = ref(0)
@@ -252,7 +253,7 @@ const fetchChatList = async () => {
     }
   } catch (error) {
     console.error('获取聊天列表失败:', error)
-    showToast('获取聊天列表失败')
+    showToast(getApiErrorMessage(error, '获取聊天列表失败'))
   } finally {
     loading.value = false
   }
@@ -339,7 +340,7 @@ const deleteChat = async (chatId) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除聊天失败:', error)
-      showToast('删除失败，请重试')
+      showToast(getApiErrorMessage(error, '删除失败，请重试'))
     }
   }
 }
